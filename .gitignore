@@ -1,5 +1,7 @@
 # Data files
 data/*
+*.csv
+*.pdf
 
 # History files
 .Rhistory
