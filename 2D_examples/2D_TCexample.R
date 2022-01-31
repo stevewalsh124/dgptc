@@ -1,6 +1,6 @@
 
-library(deepgp) # version >= 0.3.0
 library(raster)
+library(deepgp) # version >= 0.3.0
 
 tic <- proc.time()[3]
 
