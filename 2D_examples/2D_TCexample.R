@@ -39,12 +39,13 @@ y <- tc_samp$value
 tc_pred <- tc[test,]
 xx <- cbind(tc_pred$xs, tc_pred$ys)
 
-niters <- 25000
+niters <- 50000
 
 # Fit two-layer DGP (exponential cov fn)
 fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T)
 # fit <- trim(fit, 1000, 1) # retain 2500 samples
 fit <- predict(fit, xx)
+save(fit, file = paste0("rda/storm",ste,"_niters",niters,".rda"))
 
 # Fit two-layer DGP (Matern, v=5/2)
 # fit2 <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=2.5, vecchia = T)
@@ -54,7 +55,7 @@ fit <- predict(fit, xx)
 # Combine results
 pred <- data.frame(xx = xx, mean = fit$mean, s2 = fit$s2_smooth)
 # pred2 <- data.frame(xx = xx, mean = fit2$mean, s2 = fit2$s2_smooth)
-write.csv(pred, paste0("csv/",ste,".csv"), row.names = FALSE)
+write.csv(pred, paste0("csv/storm",ste,"_niters",niters,".csv"), row.names = FALSE)
 
 # get range for plots
 rg <- range(c(tc$value, pred$mean)) #, pred2$mean
@@ -76,6 +77,9 @@ plot(fit$theta_w[,1], type="l", main="theta_w[,1]")
 plot(fit$theta_w[,2], type="l", main="theta_w[,2]")
 plot(fit$theta_y, type="l", main="theta_y")
 
+plot(fit$tau2, type="l", main="tau2")
+plot(fit$g, type="l", main="g")
+(fit$m)
 # plot(fit2$theta_w[,1], type="l")
 # plot(fit2$theta_w[,2], type="l")
 # plot(fit2$theta_y, type="l")
