@@ -8,7 +8,7 @@ library(raster)
 library(deepgp) # version >= 0.3.0
 
 # Do you want to do any spatial prediction (kriging)?
-krig <- T
+krig <- F
 
 tic <- proc.time()[3]
 
