@@ -26,7 +26,7 @@ tc$xs <- (tc$x - min(tc$x))/(max(tc$x)-min(tc$x))
 tc$ys <- (tc$y - min(tc$y))/(max(tc$y)-min(tc$y))
 
 # set training and test sets
-train <- sample(1:nrow(tc), 500)
+train <- sample(1:nrow(tc), max(500, floor(.25*nrow(tc))))
 test <- (1:nrow(tc))[-train]
 
 # subset training data
@@ -39,11 +39,11 @@ y <- tc_samp$value
 tc_pred <- tc[test,]
 xx <- cbind(tc_pred$xs, tc_pred$ys)
 
-niters <- 40000
+niters <- 40#000
 
 # Fit two-layer DGP (exponential cov fn)
 fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T)
-fit <- trim(fit, 1000, 1) # retain 2500 samples
+# fit <- trim(fit, 1000, 1) # retain 2500 samples
 fit <- predict(fit, xx)
 
 # Fit two-layer DGP (Matern, v=5/2)
@@ -61,20 +61,20 @@ rg <- range(c(tc$value, pred$mean)) #, pred2$mean
 s2_rg <- range(c(pred$s2)) #, pred2$s2
 
 # compare predictions via plots
-pdf(paste0("expntl_vs_gaussian_cov_fn_vecchia_",niters,".pdf"))
+pdf(paste0("pdf/vecchia_storm",ste,"_niters_",niters,".pdf"))
 par(mfrow=c(1,2))
-plot(rasterFromXYZ(cbind(tc$xs, tc$ys, tc$value)), zlim=rg)
-plot(rasterFromXYZ(cbind(pred$xx.1,pred$xx.2,pred$mean)), zlim=rg)
+plot(rasterFromXYZ(cbind(tc$xs, tc$ys, tc$value)), zlim=rg, main="EF")
+plot(rasterFromXYZ(cbind(pred$xx.1,pred$xx.2,pred$mean)), zlim=rg, main="pred mean")
 # plot(rasterFromXYZ(cbind(pred2$xx.1,pred2$xx.2,pred2$mean)), zlim=rg)
 
-plot(rasterFromXYZ(cbind(tc$xs, tc$ys, tc$value)))
-plot(rasterFromXYZ(cbind(pred$xx.1,pred$xx.2,pred$s2)), zlim=s2_rg)
+plot(rasterFromXYZ(cbind(tc$xs, tc$ys, tc$value)), main="EF")
+plot(rasterFromXYZ(cbind(pred$xx.1,pred$xx.2,pred$s2)), zlim=s2_rg, main="pred s2")
 # plot(rasterFromXYZ(cbind(pred2$xx.1,pred2$xx.2,pred2$s2)), zlim=s2_rg)
 
 par(mfrow=c(1,3))
-plot(fit$theta_w[,1], type="l")
-plot(fit$theta_w[,2], type="l")
-plot(fit$theta_y, type="l")
+plot(fit$theta_w[,1], type="l", main="theta_w[,1]")
+plot(fit$theta_w[,2], type="l", main="theta_w[,2]")
+plot(fit$theta_y, type="l", main="theta_y")
 
 # plot(fit2$theta_w[,1], type="l")
 # plot(fit2$theta_w[,2], type="l")
