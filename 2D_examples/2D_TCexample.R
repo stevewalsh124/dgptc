@@ -79,7 +79,7 @@ plot(fit$theta_y, type="l", main="theta_y")
 
 plot(fit$tau2, type="l", main="tau2")
 plot(fit$g, type="l", main="g")
-(fit$m)
+
 # plot(fit2$theta_w[,1], type="l")
 # plot(fit2$theta_w[,2], type="l")
 # plot(fit2$theta_y, type="l")
