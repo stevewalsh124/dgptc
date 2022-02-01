@@ -39,7 +39,7 @@ y <- tc_samp$value
 tc_pred <- tc[test,]
 xx <- cbind(tc_pred$xs, tc_pred$ys)
 
-niters <- 40#000
+niters <- 25000
 
 # Fit two-layer DGP (exponential cov fn)
 fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T)

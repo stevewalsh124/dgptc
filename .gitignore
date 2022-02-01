@@ -2,6 +2,8 @@
 data/*
 *.csv
 *.pdf
+2D_examples/Rout/*
+2D_examples/*.out
 
 # History files
 .Rhistory
