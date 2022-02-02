@@ -8,11 +8,12 @@ library(raster)
 library(deepgp) # version >= 0.3.0
 
 # Do you want to do any spatial prediction (kriging)?
-krig <- F
+krig <- T
 
 tic <- proc.time()[3]
 
-tc_files <- list.files("~/NAM-Model-Validation/csv/error_df/subtractPWmeanF/", full.names = T)
+tc_files <- list.files("~/NAM-Model-Validation/csv/error_df/subtractPWmeanF/",
+                       full.names = T)
 
 # storm to evaluate (11 is smallest)
 ste <- 11
@@ -27,6 +28,7 @@ tc <- read.csv(tc_files[ste], row.names = 1)
 # scaled lon and lat to be in [0,1]
 tc$xs <- (tc$x - min(tc$x))/(max(tc$x)-min(tc$x))
 tc$ys <- (tc$y - min(tc$y))/(max(tc$y)-min(tc$y))
+tc$zs <- (tc$value - mean(tc$value))/(sd(tc$value))
 
 # set training and test sets
 train <- sample(1:nrow(tc), max(500, floor(.25*nrow(tc))))
@@ -35,20 +37,28 @@ test <- (1:nrow(tc))[-train]
 # subset training data
 tc_samp <- tc[train,]
 x <- cbind(tc_samp$xs, tc_samp$ys)
-y <- tc_samp$value
+y <- tc_samp$zs
 # plot(rasterFromXYZ(data.frame(cbind(x,y))))
 
 # Locations for predictions
 tc_pred <- tc[test,]
 xx <- cbind(tc_pred$xs, tc_pred$ys)
 
-niters <- 5#0000
+niters <- 50000
 
 # Fit two-layer DGP (exponential cov fn)
-fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T)
+fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
+                     theta_y_0 = 4, theta_w_0 = c(9,5), true_g = sqrt(.Machine$double.eps))
 # fit <- trim(fit, 1000, 1) # retain 2500 samples
-fit <- predict(fit, xx)
+
+# save before predict
 save(fit, file = paste0("rda/storm",ste,"_niters",niters,".rda"))
+
+# predict and save after
+if(krig){
+  fit <- predict(fit, xx)
+  save(fit, file = paste0("rda/storm",ste,"_niters",niters,if(krig){"krig"},".rda"))
+}
 
 # Fit two-layer DGP (Matern, v=5/2)
 # fit2 <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=2.5, vecchia = T)
