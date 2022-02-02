@@ -4,7 +4,7 @@
 
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=4
-#SBATCH -t 48:00:00
+#SBATCH -t 96:00:00
 #SBATCH -p normal_q
 #SBATCH -A Precipit
 

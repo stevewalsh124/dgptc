@@ -31,6 +31,7 @@ tc$ys <- (tc$y - min(tc$y))/(max(tc$y)-min(tc$y))
 tc$zs <- (tc$value - mean(tc$value))/(sd(tc$value))
 
 # set training and test sets
+set.seed(1) # keep a consisten set of train/test
 train <- sample(1:nrow(tc), max(500, floor(.25*nrow(tc))))
 test <- (1:nrow(tc))[-train]
 
