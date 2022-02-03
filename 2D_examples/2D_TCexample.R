@@ -7,13 +7,21 @@
 library(raster)
 library(deepgp) # version >= 0.3.0
 
+tic <- proc.time()[3]
+
+# Do you want to use the FL subset TCs?
+do_FL <- T
+
 # Do you want to do any spatial prediction (kriging)?
 krig <- T
 
-tic <- proc.time()[3]
-
-tc_files <- list.files("~/NAM-Model-Validation/csv/error_df/subtractPWmeanF/",
-                       full.names = T)
+# Load the appropriate files (most FL storms, or all full storms)
+if(do_FL){
+  tc_files <- list.files("rda/FL_storms", full.names = T)
+} else {
+  tc_files <- list.files("~/NAM-Model-Validation/csv/error_df/subtractPWmeanF/",
+                         full.names = T)
+}
 
 # storm to evaluate (11 is smallest)
 ste <- 11
@@ -23,7 +31,14 @@ if(length(args) > 0)
   for(i in 1:length(args))
     eval(parse(text=args[[i]]))
 
-tc <- read.csv(tc_files[ste], row.names = 1)
+# Read in the specific storm data frame
+if(do_FL){
+  load(tc_files[ste])
+  tc <- data.frame(FL_df)
+  names(tc) <- c("x","y","value")
+} else {
+  tc <- read.csv(tc_files[ste], row.names = 1)
+}
 
 # scaled lon and lat to be in [0,1]
 tc$xs <- (tc$x - min(tc$x))/(max(tc$x)-min(tc$x))
@@ -45,7 +60,7 @@ y <- tc_samp$zs
 tc_pred <- tc[test,]
 xx <- cbind(tc_pred$xs, tc_pred$ys)
 
-niters <- 50000
+niters <- 25000
 
 # Fit two-layer DGP (exponential cov fn)
 fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
@@ -53,12 +68,22 @@ fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T,
 # fit <- trim(fit, 1000, 1) # retain 2500 samples
 
 # save before predict
-save(fit, file = paste0("rda/storm",ste,"_niters",niters,".rda"))
+if(do_FL){
+  save(fit, file = paste0("rda/FL_fits/storm",ste,"_niters",niters,".rda"))
+} else {
+  save(fit, file = paste0("rda/storm",ste,"_niters",niters,".rda"))
+}
 
 # predict and save after
 if(krig){
   fit <- predict(fit, xx)
-  save(fit, file = paste0("rda/storm",ste,"_niters",niters,if(krig){"krig"},".rda"))
+  if(do_FL){
+    save(fit, file = paste0("rda/FL_fits/storm",ste,"_niters",
+                            niters,if(krig){"krig"},".rda"))
+  } else {
+    save(fit, file = paste0("rda/storm",ste,"_niters",
+                            niters,if(krig){"krig"},".rda"))
+  }
 }
 
 # Fit two-layer DGP (Matern, v=5/2)
@@ -70,15 +95,20 @@ if(krig){
   # Combine results
   pred <- data.frame(xx = xx, mean = fit$mean, s2 = fit$s2_smooth)
   # pred2 <- data.frame(xx = xx, mean = fit2$mean, s2 = fit2$s2_smooth)
-  write.csv(pred, paste0("csv/storm",ste,"_niters",niters,".csv"), row.names = FALSE)
-  
+  if(do_FL){
+    write.csv(pred, paste0("csv/FL_fits/storm",ste,"_niters",
+                           niters,".csv"), row.names = FALSE)
+  } else {
+    write.csv(pred, paste0("csv/storm",ste,"_niters",
+                           niters,".csv"), row.names = FALSE)
+  }
   # get range for plots
   rg <- range(c(tc$value, pred$mean)) #, pred2$mean
   s2_rg <- range(c(pred$s2)) #, pred2$s2
 }
 
 # compare predictions via plots
-pdf(paste0("pdf/storm",ste,"_niters_",niters,if(krig){"krig"},".pdf"))
+pdf(paste0("pdf/",if(do_FL){"FL_fits/"},"storm",ste,"_niters_",niters,if(krig){"krig"},".pdf"))
 if(krig){par(mfrow=c(1,2))}
 plot(rasterFromXYZ(cbind(tc$xs, tc$ys, tc$value)), if(krig){zlim=rg}, main="EF")
 if(krig){
