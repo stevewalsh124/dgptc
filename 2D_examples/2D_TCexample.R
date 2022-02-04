@@ -75,14 +75,14 @@ if(pmx){
   fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
                        theta_y_0 = init_param[ste,1], 
                        theta_w_0 = init_param[ste,2:3], 
-                       w_0 = init_w[[ste]],
+                       w_0 = init_w[[ste]][[1]],
                        true_g = sqrt(.Machine$double.eps),
                        settings = list(w_prior_mean = x))
 } else {
   fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
                        theta_y_0 = init_param[ste,1], 
                        theta_w_0 = init_param[ste,2:3], 
-                       w_0 = init_w[[ste]],
+                       w_0 = init_w[[ste]][[1]],
                        true_g = sqrt(.Machine$double.eps))
 }
 
