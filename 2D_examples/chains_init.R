@@ -27,4 +27,6 @@ for (pmx in 1) {
   }
 }
 
-init_pmx
+# Save each storm's last iteration of param values
+save(init_pmx, file = "rda/burn_params_FLpmx.rda")
+save(w_pmx, file = "rda/burn_w_FLpmx.rda")
