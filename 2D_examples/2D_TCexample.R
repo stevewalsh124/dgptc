@@ -9,12 +9,18 @@ library(deepgp) # version >= 0.3.0
 
 tic <- proc.time()[3]
 
-# Do you want to use the FL subset TCs?
-# Do you want to specify no warping a priori? (ie, should W have prior mean X?)
-# Do you want to do any spatial prediction (kriging)?
+# Do you want to...
+# use the FL subset TCs?
+# specify no warping a priori? (ie, should W have prior mean X?)
+# do any spatial prediction (kriging)?
 do_FL <- T
 pmx <- T
 krig <- T
+
+# Read in the previous burned-in values for params and w
+# loads init_param and init_w
+load(paste0("rda/burn_params_FL",if(pmx){"pmx"},".rda"))
+load(paste0("rda/burn_w_FL",if(pmx){"pmx"},".rda"))
 
 # Load the appropriate files (most FL storms, or all full storms)
 if(do_FL){
@@ -67,11 +73,17 @@ xx <- cbind(tc_pred$xs, tc_pred$ys)
 # Fit two-layer DGP (exponential cov fn)
 if(pmx){
   fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
-                       theta_y_0 = 4, true_g = sqrt(.Machine$double.eps),
+                       theta_y_0 = init_param[ste,1], 
+                       theta_w_0 = init_param[ste,2:3], 
+                       w_0 = init_w[[ste]],
+                       true_g = sqrt(.Machine$double.eps),
                        settings = list(w_prior_mean = x))
 } else {
   fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
-                       theta_y_0 = 4, true_g = sqrt(.Machine$double.eps))
+                       theta_y_0 = init_param[ste,1], 
+                       theta_w_0 = init_param[ste,2:3], 
+                       w_0 = init_w[[ste]],
+                       true_g = sqrt(.Machine$double.eps))
 }
 
 # fit <- trim(fit, 1000, 1) # retain 2500 samples
