@@ -3,7 +3,7 @@
 # Make sure to change the -A line to your allocation
 
 #SBATCH -N 1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=6
 #SBATCH -t 72:00:00
 #SBATCH -p normal_q
 #SBATCH -A Precipit

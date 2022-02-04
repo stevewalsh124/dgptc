@@ -10,9 +10,10 @@ library(deepgp) # version >= 0.3.0
 tic <- proc.time()[3]
 
 # Do you want to use the FL subset TCs?
-do_FL <- T
-
+# Do you want to specify no warping a priori? (ie, should W have prior mean X?)
 # Do you want to do any spatial prediction (kriging)?
+do_FL <- T
+pmx <- T
 krig <- T
 
 # Load the appropriate files (most FL storms, or all full storms)
@@ -25,6 +26,9 @@ if(do_FL){
 
 # storm to evaluate (11 is smallest)
 ste <- 11
+
+# number of iterations for MCMC
+niters <- 25000
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -60,11 +64,16 @@ y <- tc_samp$zs
 tc_pred <- tc[test,]
 xx <- cbind(tc_pred$xs, tc_pred$ys)
 
-niters <- 25000
-
 # Fit two-layer DGP (exponential cov fn)
-fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
-                     theta_y_0 = 4, theta_w_0 = c(9,5), true_g = sqrt(.Machine$double.eps))
+if(pmx){
+  fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
+                       theta_y_0 = 4, true_g = sqrt(.Machine$double.eps),
+                       settings = list(w_prior_mean = x))
+} else {
+  fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
+                       theta_y_0 = 4, true_g = sqrt(.Machine$double.eps))
+}
+
 # fit <- trim(fit, 1000, 1) # retain 2500 samples
 
 # save before predict
@@ -77,38 +86,29 @@ if(do_FL){
 # predict and save after
 if(krig){
   fit <- predict(fit, xx)
-  if(do_FL){
-    save(fit, file = paste0("rda/FL_fits/storm",ste,"_niters",
-                            niters,if(krig){"krig"},".rda"))
-  } else {
-    save(fit, file = paste0("rda/storm",ste,"_niters",
-                            niters,if(krig){"krig"},".rda"))
-  }
+  save(fit, file = paste0("rda/",if(do_FL){"FL_fits/"},
+                          "storm",ste,
+                          "_niters",niters,
+                          if(krig){"krig"},
+                          if(pmx){"pmx"},".rda"))
 }
-
-# Fit two-layer DGP (Matern, v=5/2)
-# fit2 <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=2.5, vecchia = T)
-# fit2 <- trim(fit2, 1000, 1)
-# fit2 <- predict(fit2, xx)
 
 if(krig){
   # Combine results
   pred <- data.frame(xx = xx, mean = fit$mean, s2 = fit$s2_smooth)
-  # pred2 <- data.frame(xx = xx, mean = fit2$mean, s2 = fit2$s2_smooth)
-  if(do_FL){
-    write.csv(pred, paste0("csv/FL_fits/storm",ste,"_niters",
-                           niters,".csv"), row.names = FALSE)
-  } else {
-    write.csv(pred, paste0("csv/storm",ste,"_niters",
-                           niters,".csv"), row.names = FALSE)
-  }
+
+  # Save prediction results
+  write.csv(pred, paste0("csv/",if(do_FL){"FL_fits/"},"storm",ste,"_niters",
+                         niters, if(pmx){"pmx"},".csv"), row.names = FALSE)
+  
   # get range for plots
   rg <- range(c(tc$value, pred$mean)) #, pred2$mean
   s2_rg <- range(c(pred$s2)) #, pred2$s2
 }
 
 # compare predictions via plots
-pdf(paste0("pdf/",if(do_FL){"FL_fits/"},"storm",ste,"_niters_",niters,if(krig){"krig"},".pdf"))
+pdf(paste0("pdf/",if(do_FL){"FL_fits/"},"storm",ste,
+           "_niters_",niters,if(krig){"krig"},if(pmx){"pmx"},".pdf"))
 if(krig){par(mfrow=c(1,2))}
 plot(rasterFromXYZ(cbind(tc$xs, tc$ys, tc$value)), if(krig){zlim=rg}, main="EF")
 if(krig){
