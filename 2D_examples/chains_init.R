@@ -8,25 +8,21 @@ library(deepgp)
 
 niters <- 25000
 
+# Gather param estimates when prior mean for W is x (T) or 0 (F)
+pmx <- F
+
 # save theta and tau2 (theta_y, theta_w, tau2)
-init_pm0 <- init_pmx <- matrix(NA, nrow = 18, ncol = 4)
-w_pm0 <- w_pmx <- list()
+init_param <- matrix(NA, nrow = 18, ncol = 4)
+init_w <- list()
 
 # There are 18 Florida storms that we will compare
-for (pmx in 1) {
-  for (ste in 1:18) {
-    load(paste0("rda/FL_fits/storm",ste,"_niters",niters,"krig",if(pmx==1){"pmx"},".rda"))
-    fit <- trim(fit, niters-1, 1) # retain only last sample
-    if(pmx){
-      init_pmx[ste,] <- c(fit$theta_y, fit$theta_w, fit$tau2[niters])
-      w_pmx[[ste]] <- fit$w
-    } else {
-      init_pm0[ste,] <- c(fit$theta_y, fit$theta_w, fit$tau2[niters])
-      w_pm0[[ste]] <- fit$w
-    }
-  }
+for (ste in 1:18) {
+  load(paste0("rda/FL_fits/storm",ste,"_niters",niters,"krig",if(pmx==1){"pmx"},".rda"))
+  fit <- trim(fit, niters-1, 1) # retain only last sample
+  init_param[ste,] <- c(fit$theta_y, fit$theta_w, fit$tau2[niters])
+  init_w[[ste]] <- fit$w
 }
 
 # Save each storm's last iteration of param values
-save(init_pmx, file = "rda/burn_params_FLpmx.rda")
-save(w_pmx, file = "rda/burn_w_FLpmx.rda")
+save(init_param, file = paste0("rda/burn_params_FL",if(pmx==1){"pmx"},".rda"))
+save(init_w, file = paste0("rda/burn_w_FL",if(pmx==1){"pmx"},".rda"))
