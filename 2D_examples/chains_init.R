@@ -9,7 +9,7 @@ library(deepgp)
 niters <- 25000
 
 # Gather param estimates when prior mean for W is x (T) or 0 (F)
-pmx <- F
+pmx <- T
 
 # save theta and tau2 (theta_y, theta_w, tau2)
 init_param <- matrix(NA, nrow = 18, ncol = 4)
@@ -22,6 +22,8 @@ for (ste in 1:18) {
   init_param[ste,] <- c(fit$theta_y, fit$theta_w, fit$tau2[niters])
   init_w[[ste]] <- fit$w
 }
+
+colnames(init_param) <- c("theta_y","theta_w1","theta_w2","tau2")
 
 # Save each storm's last iteration of param values
 save(init_param, file = paste0("rda/burn_params_FL",if(pmx==1){"pmx"},".rda"))
