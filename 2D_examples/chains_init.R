@@ -6,7 +6,8 @@
 
 library(deepgp)
 
-niters <- 25000
+# Choose based on the files you want to load
+niters <- 50000
 
 # Gather param estimates when prior mean for W is x (T) or 0 (F)
 pmx <- T
