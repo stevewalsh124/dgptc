@@ -4,19 +4,28 @@
 # Febraury 4 2022              #
 ################################
 
-pdf("pdf/all_FL_chains_25to50k.pdf")
+# Change load() call to remove /orig_50k if necessary
+# Change pdf name for each batch
 
 # Choose based on the files you want to load
+# Save every kth iteration (thinning MCMC)
 niters <- 50000
+k <- 100
+
+pdf(paste0("pdf/all_FL_chains_25to50k_thin",k,".pdf"))
 
 pmx_means <- pmx_medians <- pm0_means <- matrix(NA, 18, 6)
 colnames(pmx_means) <- colnames(pmx_medians) <- colnames(pm0_means) <- 
   c("theta_y", "theta_w1","theta_w2","tau2","min_w","max_w")
 
 # There are 18 Florida storms that we will compare
+# Trace plots, histograms and acf plots of the chains 
+# for theta = (theta_y, theta_w1, theta_w2) and tau2
 for (ste in 1:18) {
   for (pmx in 1) {
-    load(paste0("rda/FL_fits/storm",ste,"_niters",niters,"krig",if(pmx==1){"pmx"},".rda"))
+    load(paste0("rda/FL_fits/orig_50k/storm",ste,"_niters",niters,"krig",if(pmx==1){"pmx"},".rda"))
+    fit <- trim(fit, 0, k)
+    thin_seq <- seq(from=k, to=niters, by=k) # for tau2
     
     par(mfrow=c(2,2))
     plot(fit$theta_w[,1], type="l", main=paste0("theta_w[,1] ",ste,", pmx=",pmx))
@@ -25,7 +34,20 @@ for (ste in 1:18) {
     plot(fit$tau2, type="l", main=paste0("tau2 ",ste,", pmx=",pmx))
     # plot(fit$g, type="l", main=paste0("g ",ste,", pmx=",pmx))  
     
-    # Save mean and median info for each TC
+    par(mfrow=c(2,2))
+    hist(fit$theta_w[,1], main=paste0("theta_w[,1] ",ste,", pmx=",pmx))
+    hist(fit$theta_w[,2], main=paste0("theta_w[,2] ",ste,", pmx=",pmx))
+    hist(fit$theta_y, main=paste0("theta_y ",ste,", pmx=",pmx))
+    hist(fit$tau2, main=paste0("tau2 ",ste,", pmx=",pmx))
+    # hist(fit$g, main=paste0("g ",ste,", pmx=",pmx))  
+    
+    acf(fit$theta_y, lag.max = length(fit$theta_y))
+    acf(fit$theta_w[,1], lag.max = length(fit$theta_w[,1]))
+    acf(fit$theta_w[,2], lag.max = length(fit$theta_w[,2]))
+    acf(fit$tau2[thin_seq], lag.max = length(thin_seq))
+    
+    # Save mean and median info for each TC,
+    # as well as min and max over all w's per TC
     if(pmx){
       pmx_means[ste,1] <- mean(fit$theta_y)
       pmx_means[ste,2:3] <- colMeans(fit$theta_w)
@@ -42,20 +64,6 @@ for (ste in 1:18) {
       pm0_means[ste,4] <- mean(fit$tau2)
       pm0_means[ste,5:6] <- range(unlist(fit$w))
     }
-  }
-}
-
-# Histograms instead of trace plots
-for (ste in 1:18) {
-  for (pmx in 1) {
-    load(paste0("rda/FL_fits/storm",ste,"_niters",niters,"krig",if(pmx==1){"pmx"},".rda"))
-    
-    par(mfrow=c(2,2))
-    hist(fit$theta_w[,1], main=paste0("theta_w[,1] ",ste,", pmx=",pmx))
-    hist(fit$theta_w[,2], main=paste0("theta_w[,2] ",ste,", pmx=",pmx))
-    hist(fit$theta_y, main=paste0("theta_y ",ste,", pmx=",pmx))
-    hist(fit$tau2, main=paste0("tau2 ",ste,", pmx=",pmx))
-    # hist(fit$g, main=paste0("g ",ste,", pmx=",pmx))  
   }
 }
 
