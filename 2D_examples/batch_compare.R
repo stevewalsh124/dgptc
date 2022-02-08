@@ -19,21 +19,21 @@ par(mfrow=c(2,3))
 for (i in 1:6) {plot(pmx_means[,i], pmx_means2[,i],
                      main = paste(colnames(pmx_means)[i],
                                   round(cor(pmx_means[,i],pmx_means2[,i]),3))); abline(0,1)}
-mtext("Means vs Means2", side = 3, line = -22, outer = TRUE)
+mtext("Means vs Means2", side = 3, line = -27.5, outer = TRUE)
 
 for (i in 1:6) {plot(pmx_medians[,i], pmx_medians2[,i],
                      main = paste(colnames(pmx_means)[i],
                                   round(cor(pmx_medians[,i],pmx_medians2[,i]),3))); abline(0,1)}
-mtext("Medians vs Medians2", side = 3, line = -22, outer = TRUE)
+mtext("Medians vs Medians2", side = 3, line = -27.5, outer = TRUE)
 
 for (i in 1:6) {plot(pmx_means[,i], pmx_medians[,i],
                      main = paste(colnames(pmx_means)[i],
                                   round(cor(pmx_means[,i],pmx_medians[,i]),3))); abline(0,1)}
-mtext("Means vs Medians", side = 3, line = -22, outer = TRUE)
+mtext("Means vs Medians", side = 3, line = -27.5, outer = TRUE)
 
 for (i in 1:6) {plot(pmx_means2[,i], pmx_medians2[,i],
                      main = paste(colnames(pmx_means)[i],
                                   round(cor(pmx_means2[,i],pmx_medians2[,i]),3))); abline(0,1)}
-mtext("Means2 vs Medians2", side = 3, line = -22, outer = TRUE)
+mtext("Means2 vs Medians2", side = 3, line = -27.5, outer = TRUE)
 
 dev.off()
