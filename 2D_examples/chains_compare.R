@@ -23,7 +23,7 @@ colnames(pmx_means) <- colnames(pmx_medians) <- colnames(pm0_means) <-
 # for theta = (theta_y, theta_w1, theta_w2) and tau2
 for (ste in 1:18) {
   for (pmx in 1) {
-    load(paste0("rda/FL_fits/orig_50k/storm",ste,"_niters",niters,"krig",if(pmx==1){"pmx"},".rda"))
+    load(paste0("rda/FL_fits/storm",ste,"_niters",niters,"krig",if(pmx==1){"pmx"},".rda"))
     fit <- trim(fit, 0, k)
     thin_seq <- seq(from=k, to=niters, by=k) # for tau2
     
