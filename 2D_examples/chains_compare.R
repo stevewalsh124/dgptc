@@ -28,17 +28,17 @@ for (ste in 1:18) {
     thin_seq <- seq(from=k, to=niters, by=k) # for tau2
     
     par(mfrow=c(2,2))
+    plot(fit$theta_y, type="l", main=paste0("theta_y ",ste,", pmx=",pmx))
     plot(fit$theta_w[,1], type="l", main=paste0("theta_w[,1] ",ste,", pmx=",pmx))
     plot(fit$theta_w[,2], type="l", main=paste0("theta_w[,2] ",ste,", pmx=",pmx))
-    plot(fit$theta_y, type="l", main=paste0("theta_y ",ste,", pmx=",pmx))
-    plot(fit$tau2, type="l", main=paste0("tau2 ",ste,", pmx=",pmx))
+    plot(fit$tau2[thin_seq], type="l", main=paste0("tau2 ",ste,", pmx=",pmx))
     # plot(fit$g, type="l", main=paste0("g ",ste,", pmx=",pmx))  
     
     par(mfrow=c(2,2))
+    hist(fit$theta_y, main=paste0("theta_y ",ste,", pmx=",pmx))
     hist(fit$theta_w[,1], main=paste0("theta_w[,1] ",ste,", pmx=",pmx))
     hist(fit$theta_w[,2], main=paste0("theta_w[,2] ",ste,", pmx=",pmx))
-    hist(fit$theta_y, main=paste0("theta_y ",ste,", pmx=",pmx))
-    hist(fit$tau2, main=paste0("tau2 ",ste,", pmx=",pmx))
+    hist(fit$tau2[thin_seq], main=paste0("tau2 ",ste,", pmx=",pmx))
     # hist(fit$g, main=paste0("g ",ste,", pmx=",pmx))  
     
     acf(fit$theta_y, lag.max = length(fit$theta_y))
