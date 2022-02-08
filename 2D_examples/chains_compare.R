@@ -67,6 +67,13 @@ for (ste in 1:18) {
   }
 }
 
+# Save 
+save(pmx_means, file = paste0("rda/FL_summaries/pmx_means_",niters,"_thin",k))
+write.csv(pmx_means, file = paste0("rda/FL_summaries/pmx_means_",niters,"_thin",k,".csv"))
+
+save(pmx_medians, file = paste0("rda/FL_summaries/pmx_medians_",niters,"_thin",k))
+write.csv(pmx_medians, file = paste0("rda/FL_summaries/pmx_medians_",niters,"_thin",k,".csv"))
+
 # Look at means and medians of the params across TCs
 par(mfrow=c(2,3))
 for (i in 1:ncol(pmx_means)) hist(pmx_means[,i], 
