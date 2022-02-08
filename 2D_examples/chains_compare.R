@@ -12,7 +12,7 @@
 niters <- 50000
 k <- 100
 
-pdf(paste0("pdf/all_FL_chains_25to50k_thin",k,".pdf"))
+pdf(paste0("pdf/all_FL_chains_",niters,"_thin",k,".pdf"))
 
 pmx_means <- pmx_medians <- pm0_means <- matrix(NA, 18, 6)
 colnames(pmx_means) <- colnames(pmx_medians) <- colnames(pm0_means) <- 
