@@ -4,6 +4,7 @@ data/*
 *.pdf
 2D_examples/Rout/*
 2D_exmaples/rda/*
+2D_examples/rda/
 2D_examples/*.out
 
 # History files
