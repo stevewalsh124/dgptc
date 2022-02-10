@@ -9,22 +9,22 @@ library(coda) # gelman.diag
 
 GRs <- gds <- matrix(NA, 18, 4)
 
-for (ste in c(2,4,6)) {
+for (ste in 1:18) {
   
-  # First 25k (burn-in)
+  # First 25k (burn-in) ...
   load(paste0("rda/FL_fits/storm",ste,"_niters25000krigpmx.rda"))
   fit_burn <- fit
   
-  # First 50k (after burn-in)
+  # ...then First 50k (after burn-in) ...
   load(paste0("rda/FL_fits/orig_50k/storm",ste,"_niters50000krigpmx.rda"))
   fit_orig <- fit
-  
-  # Combine the 25 burn-in with 50k samples after
+
+  # ... then combine these two for 75k total
   l <- list(fit_burn, fit_orig)
   keys <- unique(unlist(lapply(l, names)))
   fit_orig <- setNames(do.call(mapply, c(FUN=c, lapply(l, `[`, keys))), keys)
   fit_orig$theta_w <- matrix(fit_orig$theta_w, 75000, 2)
-  
+
   # # Next 50k (100k samples after "burn-in")
   # load(paste0("rda/FL_fits/storm",ste,"_niters50000krigpmx.rda"))
   # fit_newer <- fit
@@ -58,5 +58,9 @@ for (ste in c(2,4,6)) {
 }
 
 GRs[complete.cases(GRs),]
-
 gds[complete.cases(gds),]
+
+par(mfrow=c(2,2))
+for(i in 1:4) hist(GRs[,i],main="25+50 vs 75")
+for(i in 1:4) hist(gds[,i],main="25+50 vs 75")
+for(i in 1:4) {plot(GRs[,i], gds[,i],main="25+50 vs 75"); abline(0,1)}
