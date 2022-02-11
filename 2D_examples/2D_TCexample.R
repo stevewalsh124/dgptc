@@ -60,7 +60,7 @@ set.seed(1) # keep a consisten set of train/test
 wl <- which(tc$ys==0 & abs(tc$xs-0.7692308) < 1e-3) # save a (0,0) point
 wh <- which(tc$ys==1 & abs(tc$xs-0.7692308) < 1e-3) # save a (0,1) point
 all_but_ws <- (1:nrow(tc))[-c(wl,wh)]
-train <- sample(all_but_ws, max(500, floor(.25*nrow(tc))))
+train <- c(sample(all_but_ws, max(500, floor(.25*nrow(tc)))),wl,wh)
 test <- (1:nrow(tc))[-train]
 
 # subset training data
