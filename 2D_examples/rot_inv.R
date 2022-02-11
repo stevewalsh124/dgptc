@@ -4,7 +4,7 @@
 
 pdf("pdf/deform/deform_compare.pdf")
 
-for (ste in c(1,3,5,6,7,8,10,11,12,13,15)) {
+for (ste in c(1,3,5,6,7,8,10,11,12,13,15,16,17)) {
   load(paste0("~/dgptc/2D_examples/rda/FL_fits/storm",ste,"_niters5000krigpmx.rda"))
   
   X <- fit$x
