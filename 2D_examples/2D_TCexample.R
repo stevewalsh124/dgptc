@@ -34,7 +34,7 @@ if(do_FL){
 ste <- 11
 
 # number of iterations for MCMC
-niters <- 25000
+niters <- 25001
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
