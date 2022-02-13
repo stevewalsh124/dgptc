@@ -51,8 +51,9 @@ if(do_FL){
 }
 
 # scaled lon and lat to be in [0,1]
-tc$xs <- (tc$x - min(tc$x))/(max(tc$x)-min(tc$x))
-tc$ys <- (tc$y - min(tc$y))/(max(tc$y)-min(tc$y))
+load("rda/FL_rgs.rda")
+tc$xs <- (tc$x - FL_rgs[1])/(FL_rgs[2] - FL_rgs[1])
+tc$ys <- (tc$y - FL_rgs[3])/(FL_rgs[4] - FL_rgs[3])
 tc$zs <- (tc$value - mean(tc$value))/(sd(tc$value))
 
 # set training and test sets
