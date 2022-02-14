@@ -7,6 +7,16 @@
 # February 13 2022                #
 ###################################
 
+# First, find range of lat and lon to scale
+# all points to be in the unit square.
+# Save these points as FL_rgs
+
+# Second, use FL_rgs to rescale all FL TCs,
+# and then use the intersection of all these
+# collections of grid points to find a 
+# common set of reference points
+# Save these points as FL_ref
+
 library(raster)
 
 FL <- read.csv("~/NAM-Model-Validation/csv/stormsFL.csv", row.names = 1)$x
@@ -20,6 +30,7 @@ load("rda/FL_rgs.rda")
 
 pdf("pdf/intersection_FLs.pdf")
 for (ste in fl) {
+  # loads FL_df
   load(paste0("~/dgptc/2D_examples/rda/FL_storms/",ste,".rda"))
 
   # Read in the specific storm data frame
@@ -58,4 +69,5 @@ zz <- r_sum_df[wl,1:2]
 # is 1st in the subset
 r_sub <- r_sum_df[which(r_sum_df[,"x"]==r_sum_df[wl,"x"]),]
 zo <- r_sub[1,1:2]
-
+FL_ref <- rbind(zo,zz)
+save(FL_ref, file = "rda/FL_ref.rda")
