@@ -6,10 +6,10 @@
 
 library(Morpho) #deformGrid2d
 
-k <- 5000 # every kth warping to plot
-tp <- 10 # total plots to produce (excluding original)
+k <- 500 # every kth warping to plot
+tp <- 100 # total plots to produce (excluding original)
 
-pdf("pdf/deform/deform_compare.pdf")
+pdf(paste0("pdf/deform/deform_compare_k",k,"_tp",tp,".pdf"))
 
 # Loop over TCs
 for (ste in 1:18) {
