@@ -69,5 +69,5 @@ zz <- r_sum_df[wl,1:2]
 # is 1st in the subset
 r_sub <- r_sum_df[which(r_sum_df[,"x"]==r_sum_df[wl,"x"]),]
 zo <- r_sub[1,1:2]
-FL_ref <- rbind(zo,zz)
+FL_ref <- rbind(zz,zo)
 save(FL_ref, file = "rda/FL_ref.rda")
