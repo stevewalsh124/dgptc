@@ -58,8 +58,9 @@ tc$zs <- (tc$value - mean(tc$value))/(sd(tc$value))
 
 # set training and test sets
 set.seed(1) # keep a consisten set of train/test
-wl <- which(tc$ys==0 & abs(tc$xs-0.7692308) < 1e-3) # save a (0,0) point
-wh <- which(tc$ys==1 & abs(tc$xs-0.7692308) < 1e-3) # save a (0,1) point
+load("rda/FL_ref.rda")
+wl <- which(abs(tc$xs-FL_ref[1,1]) < 1e-3 & abs(tc$ys-FL_ref[1,2]) < 1e-3) # save a (0,0) point
+wh <- which(abs(tc$xs-FL_ref[2,1]) < 1e-3 & abs(tc$ys-FL_ref[2,2]) < 1e-3) # save a (0,1) point
 all_but_ws <- (1:nrow(tc))[-c(wl,wh)]
 train <- c(sample(all_but_ws, max(500, floor(.25*nrow(tc)))),wl,wh)
 test <- (1:nrow(tc))[-train]
