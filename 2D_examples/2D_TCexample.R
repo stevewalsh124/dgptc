@@ -15,7 +15,7 @@ tic <- proc.time()[3]
 # do any spatial prediction (kriging)?
 do_FL <- T
 pmx <- T
-krig <- T
+krig <- F
 
 # Read in the previous burned-in values for params and w
 # loads init_param and init_w
