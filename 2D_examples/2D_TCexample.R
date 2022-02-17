@@ -34,7 +34,7 @@ if(do_FL){
 ste <- 11
 
 # number of iterations for MCMC
-niters <- 25001
+niters <- 25000
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -66,7 +66,7 @@ train <- c(sample(all_but_ws, max(500, floor(.25*nrow(tc)))),wl,wh)
 test <- (1:nrow(tc))[-train]
 
 # subset training data
-tc_samp <- tc[train,]
+tc_samp <- tc#[train,]
 x <- cbind(tc_samp$xs, tc_samp$ys)
 y <- tc_samp$zs
 # plot(rasterFromXYZ(data.frame(cbind(x,y))))
