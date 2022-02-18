@@ -7,7 +7,7 @@
 library(deepgp)
 
 # Choose based on the files you want to load
-niters <- 50000
+niters <- 25000
 
 # Gather param estimates when prior mean for W is x (T) or 0 (F)
 pmx <- T
@@ -18,9 +18,9 @@ init_w <- list()
 
 # There are 18 Florida storms that we will compare
 for (ste in 1:18) {
-  load(paste0("rda/FL_fits/storm",ste,"_niters",niters,"krig",if(pmx==1){"pmx"},".rda"))
+  load(paste0("rda/FL_fits/storm",ste,"_niters",niters,".rda"))
   fit <- trim(fit, niters-1, 1) # retain only last sample
-  init_param[ste,] <- c(fit$theta_y, fit$theta_w, fit$tau2[niters])
+  init_param[ste,] <- c(fit$theta_y, fit$theta_w, fit$tau2)
   init_w[[ste]] <- fit$w
 }
 
