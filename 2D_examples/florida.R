@@ -134,6 +134,8 @@ load("rda/FL_mask")
 # }
 # ########################################################################
 
+all_FL_tracks <- list()
+
 # Plot each FL TC and check for same number of grid points
 pdf("pdf/FL_storms.pdf")
 par(mfrow=c(2,3))
@@ -189,5 +191,9 @@ for (ste in fl) {
   points(track_locs[nrow(track_locs),1], track_locs[nrow(track_locs),2], pch="f")
   points(track_locs[,1], track_locs[,2], pch=".")
   
+  all_FL_tracks[[ste]] <- track_locs
+  
 }
 dev.off()
+
+save(all_FL_tracks, file = "rda/all_FL_tracks.rda")
