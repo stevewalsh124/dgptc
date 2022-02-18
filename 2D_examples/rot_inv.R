@@ -94,19 +94,19 @@ for (ste in 1:18) {
     # On right: plot a deformation that is rotation-invariant wrt original lat/lon
     deformGrid2d(fit$x, ww, ngrid=25, pch=19, main=paste(ste, i), gridcol = "black")
     
+    # Move the deformed points onto a regular grid
     yy <- fit$y
     irreg <- as.data.frame(cbind(ww,yy))
     colnames(irreg) <- c("lon","lat","y")
-    # use griddify to create a 40x60 grid
     reg <- griddify(irreg, nlon = 40, nlat = 60)
     
-    # Plot the new bathy object and overlay the original data points
+    # Plot the deformed error field along with original points
     plot(fit$x[,1], fit$x[,2], pch = ".", cex = 0.3, asp=1,
          xlim = c(range(fit$x[,1], irreg$lon)), ylim = c(range(fit$x[,2], irreg$lat)))
     plot(reg, add=T, alpha=1)
     points(irreg$lon, irreg$lat, pch = ".", cex = 0.3, col = col2alpha(1, alpha = 0.1))
     
-    
+    # For reference, plot the original error field with track 
     plot(rasterFromXYZ( cbind(fit$x, fit$y)))
     points(all_FL_tracks[[fl[ste]]][,1], all_FL_tracks[[fl[ste]]][,2], pch=".")
     
