@@ -138,14 +138,56 @@ load("rda/FL_mask")
 pdf("pdf/FL_storms.pdf")
 par(mfrow=c(2,3))
 for (ste in fl) {
+  
+  # Get the HURDAT track info for each TC's 24 hour window
+  hurdat <- read.csv(list.files( "/home/walsh124/NAM-Model-Validation/csv/BestTrackSpline15min/",
+                                 pattern = ".csv", full.names = T)[ste], row.names = 1)
+  colnames(hurdat) <- c("DateTime", "Hour", "Lon", "Lat", "MSLP", "Winds..knots.")
+  if(hurdat$Lon[1] > 0) hurdat$Lon <- hurdat$Lon-360
+  
+  ## Get the subset of the hurdat track info corresponding to the 24 hour period
+  # ST4 folder is the 2nd listed in the storm dir
+  storm.dirs <- list.dirs("/home/walsh124/NAMandST4", recursive = F)
+  ST4_folder <- list.dirs(storm.dirs[ste])[2]
+  eye_1 <- list.files(ST4_folder,full.names = T)[1]
+  
+  time_start  <- tail(str_locate_all(pattern ='/', eye_1)[[1]],1)[,2]
+  storm_time  <- substr(eye_1,time_start[1]+5,nchar(eye_1))
+  storm_year  <- substr(storm_time,1,4)
+  storm_month <- substr(storm_time,5,6)
+  storm_day   <- substr(storm_time,7,8)
+  storm_hour  <- substr(storm_time,9,10)
+  
+  print(paste("Storm # is", ste, "Year is",storm_year,"Month is",storm_month,
+              "Day is",storm_day,"Hour is",storm_hour))
+  
+  ind <- which(substr(hurdat$DateTime, 9, 13)==paste(storm_day, storm_hour))[1]
+  hurdat_sub <- hurdat[(ind-24):(ind+72), ] # -12, +36 for 30 min
+  hurdat_sub <- hurdat_sub[!is.na(hurdat_sub$Hour),]
+  # Get the hurricane track locations and the raster locations
+  track_locs <- hurdat_sub[,3:4]
+  
+  # Plot the "observed" precip Stage IV
   load(paste0("rda/FL_storms/ST4/",ste,".rda")) 
   plot(ST4_plotter*mask_FL, main=paste(ste, "ST4"))
+  points(track_locs[1,1], track_locs[1,2], pch="s")
+  points(track_locs[nrow(track_locs),1], track_locs[nrow(track_locs),2], pch="f")
+  points(track_locs[,1], track_locs[,2], pch=".")
   
+  # Plot the NAM forecast
   load(paste0("rda/FL_storms/NAM/",ste,".rda")) 
   plot(NAM_plotter*mask_FL, main=paste(ste, "NAM"))
+  points(track_locs[1,1], track_locs[1,2], pch="s")
+  points(track_locs[nrow(track_locs),1], track_locs[nrow(track_locs),2], pch="f")
+  points(track_locs[,1], track_locs[,2], pch=".")
   
+  # Plot error field (EF)
   load(paste0("rda/FL_storms/",ste,".rda")) 
   print(c(ste, nrow(FL_df)))
   plot(rasterFromXYZ(FL_df)*mask_FL, main=paste(ste, "EF"))
+  points(track_locs[1,1], track_locs[1,2], pch="s")
+  points(track_locs[nrow(track_locs),1], track_locs[nrow(track_locs),2], pch="f")
+  points(track_locs[,1], track_locs[,2], pch=".")
+  
 }
 dev.off()
