@@ -5,15 +5,28 @@
 #############################################
 
 library(Morpho) #deformGrid2d
+library(marmap) #griddify
 
-k <- 500 # every kth warping to plot
-tp <- 100 # total plots to produce (excluding original)
+k <- 24999 # every kth warping to plot
+tp <- 1 # total plots to produce (excluding original)
+
+FL <- read.csv("~/NAM-Model-Validation/csv/stormsFL.csv", row.names = 1)$x
+fl <- FL[-which(FL %in% c(5,10,29))]
 
 pdf(paste0("pdf/deform/deform_compare_k",k,"_tp",tp,".pdf"))
 
+load("rda/all_FL_tracks.rda")
+load("rda/FL_rgs.rda")
+for (i in fl) {
+  all_FL_tracks[[i]][,1] <- (all_FL_tracks[[i]][,1] - FL_rgs[1]) / 
+    (FL_rgs[2] - FL_rgs[1])
+  all_FL_tracks[[i]][,2] <- (all_FL_tracks[[i]][,2] - FL_rgs[3]) / 
+    (FL_rgs[4] - FL_rgs[3])
+}
+
 # Loop over TCs
 for (ste in 1:18) {
-  load(paste0("rda/FL_fits/storm",ste,"_niters75000krigpmx.rda")) #loads fit
+  load(paste0("rda/FL_fits/storm",ste,"_niters25000.rda")) #loads fit
   
   x <- t(fit$x)
   
@@ -23,15 +36,15 @@ for (ste in 1:18) {
   for (i in 1:fit$nmcmc) W[[i]] <- ifelse(fit$w[[i]] < 0, -fit$w[[i]], fit$w[[i]])
 
   # The original non-invariant plots; shown in left side for comparison
-  par(mfrow=c(1,1))
-  deformGrid2d(fit$x, W[[1]], ngrid=25, pch=19, main=paste(ste, 1), gridcol = "black")
+  # par(mfrow=c(1,1))
+  # deformGrid2d(fit$x, W[[1]], ngrid=25, pch=19, main=paste(ste, 1), gridcol = "black")
   
   # Get reference points and scale
   load("rda/FL_ref.rda")
   zz <- FL_ref[1,]
   zo <- FL_ref[2,]
-  points(zz[1],zz[2], lwd=3) # add to plot above
-  points(zo[1],zo[2], lwd=3) # add to plot above
+  # points(zz[1],zz[2], lwd=3) # add to plot above
+  # points(zo[1],zo[2], lwd=3) # add to plot above
   
   # this finds the length of the original reference vector
   zzo <- zz - zo
@@ -80,6 +93,23 @@ for (ste in 1:18) {
     
     # On right: plot a deformation that is rotation-invariant wrt original lat/lon
     deformGrid2d(fit$x, ww, ngrid=25, pch=19, main=paste(ste, i), gridcol = "black")
+    
+    yy <- fit$y
+    irreg <- as.data.frame(cbind(ww,yy))
+    colnames(irreg) <- c("lon","lat","y")
+    # use griddify to create a 40x60 grid
+    reg <- griddify(irreg, nlon = 40, nlat = 60)
+    
+    # Plot the new bathy object and overlay the original data points
+    plot(fit$x[,1], fit$x[,2], pch = ".", cex = 0.3, asp=1,
+         xlim = c(range(fit$x[,1], irreg$lon)), ylim = c(range(fit$x[,2], irreg$lat)))
+    plot(reg, add=T, alpha=1)
+    points(irreg$lon, irreg$lat, pch = ".", cex = 0.3, col = col2alpha(1, alpha = 0.1))
+    
+    
+    plot(rasterFromXYZ( cbind(fit$x, fit$y)))
+    points(all_FL_tracks[[fl[ste]]][,1], all_FL_tracks[[fl[ste]]][,2], pch=".")
+    
   }
 }
 
