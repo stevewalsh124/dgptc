@@ -44,7 +44,7 @@ plot.gaus <- function(t, phi=1, sigma2=1, tau2=0){
 # Plot Simulations #
 ####################
 
-par(mfrow=c(2,3))
+par(mfrow=c(1,2))
 
 # Currently the same for each layer; can change for individual layers
 phi <- 1/3
@@ -77,6 +77,10 @@ w <- t(chol(covmatrix2)) %*% rnorm(nrow(x))
 # output; change "matrix(w" to "matrix(z" if using third layer
 y <- matrix(w,nrow=length(xaxis),ncol=length(yaxis),byrow=FALSE)
 nug <- rnorm(prod(dim(y)), sd = sqrt(tau2))
+image.plot(matrix(x,length(xaxis),length(yaxis)) , 
+           main = bquote(phi == .(phi) ~ ",  " ~ sigma^2 == .(sigma2) ~ ",  "
+                         ~ tau^2 == .(round(tau2,4))), cex.main=1.5)
+
 image.plot(y + matrix(nug, dim(y)[1], dim(y)[2]), 
            main = bquote(phi == .(phi) ~ ",  " ~ sigma^2 == .(sigma2) ~ ",  "
                          ~ tau^2 == .(round(tau2,4))), cex.main=1.5)
