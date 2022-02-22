@@ -6,6 +6,7 @@
 
 library(Morpho) #deformGrid2d
 library(marmap) #griddify
+library(raster) # rasterFromXYZ
 
 k <- 24999 # every kth warping to plot
 tp <- 1 # total plots to produce (excluding original)
