@@ -21,11 +21,11 @@ eps <- sqrt(.Machine$double.eps)
 Sigma <- exp(-D) + diag(eps, n)
 
 # first layer
-W <- c(rmvnorm(1, sigma=Sigma))
+W <- c(rmvnorm(1, mean=X, sigma=Sigma))
 
 # second layer
 D2 <- distance(c(W))
-Sigma_2 <- exp(-D2/0.3) + diag(eps, n)
+Sigma_2 <- exp(-D2) + diag(eps, n)
 Y <- rmvnorm(1, sigma=Sigma_2) #mean=W,
 
 #Plot each combination of layers/output
