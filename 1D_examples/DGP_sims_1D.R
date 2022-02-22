@@ -30,6 +30,6 @@ Y <- rmvnorm(1, sigma=Sigma_2) #mean=W,
 
 #Plot each combination of layers/output
 par(mfrow=c(2,2))
-plot(X, W, type="l"); abline(h=0, col=2, lwd=2, lty=2)
-plot(W, Y, type = "l"); abline(h=0, col=2, lwd=2, lty=2)
-plot(X, Y, type="l"); abline(h=0, col=2, lwd=2, lty=2)
+plot(X, W, type="l"); abline(0, 1, col=2, lty=2)
+plot(W, Y, type = "l"); abline(h=0, col=2, lty=2)
+plot(X, Y, type="l"); abline(h=0, col=2, lty=2)
