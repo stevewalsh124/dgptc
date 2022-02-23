@@ -34,7 +34,7 @@ if(do_FL){
 ste <- 11
 
 # number of iterations for MCMC
-niters <- 75000
+niters <- 30000
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -82,7 +82,9 @@ if(pmx){
                        theta_w_0 = init_param[ste,2:3],
                        w_0 = init_w[[ste]][[1]],
                        true_g = sqrt(.Machine$double.eps),
-                       settings = list(w_prior_mean = x))
+                       settings = list(w_prior_mean = x,
+                                       alpha = list(g = 1.5, theta_w = 1000, theta_y = 1.5),
+                                       beta = list(g = 3.9, theta_w = .0001/1000, theta_y = 3.9/6)))
 } else {
   fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
                        theta_y_0 = init_param[ste,1],
