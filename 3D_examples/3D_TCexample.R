@@ -15,7 +15,11 @@ tic <- proc.time()[3]
 # do any spatial prediction (kriging)?
 do_FL <- T
 pmx <- T
-krig <- T
+krig <- F
+
+# Do you want distance from track, (T)
+# or squared distance from track? (F)
+orig_dist <- T
 
 # Read in the previous burned-in values for params and w
 # loads init_param and init_w
@@ -24,7 +28,7 @@ krig <- T
 
 # Load the appropriate files (most FL storms, or all full storms)
 if(do_FL){
-  tc_files <- list.files("rda/FL_storms", full.names = T)
+  tc_files <- list.files("../2D_examples/rda/FL_storms", full.names = T)
 } else {
   tc_files <- list.files("~/NAM-Model-Validation/csv/error_df/subtractPWmeanF/",
                          full.names = T)
@@ -34,7 +38,7 @@ if(do_FL){
 ste <- 11
 
 # number of iterations for MCMC
-niters <- 25001
+niters <- 50000
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -51,16 +55,18 @@ if(do_FL){
 }
 
 # scaled lon and lat to be in [0,1]
-tc$xs <- (tc$x - min(tc$x))/(max(tc$x)-min(tc$x))
-tc$ys <- (tc$y - min(tc$y))/(max(tc$y)-min(tc$y))
+load("../2D_examples/rda/FL_rgs.rda")
+tc$xs <- (tc$x - FL_rgs[1])/(FL_rgs[2] - FL_rgs[1])
+tc$ys <- (tc$y - FL_rgs[3])/(FL_rgs[4] - FL_rgs[3])
 tc$zs <- (tc$value - mean(tc$value))/(sd(tc$value))
 
 # set training and test sets
 set.seed(1) # keep a consisten set of train/test
-wl <- which(tc$ys==0 & abs(tc$xs-0.7692308) < 1e-3) # save a (0,0) point
-wh <- which(tc$ys==1 & abs(tc$xs-0.7692308) < 1e-3) # save a (0,1) point
+load("../2D_examples/rda/FL_ref.rda")
+wl <- which(abs(tc$xs-FL_ref[1,1]) < 1e-3 & abs(tc$ys-FL_ref[1,2]) < 1e-3) # save a (0,0) point
+wh <- which(abs(tc$xs-FL_ref[2,1]) < 1e-3 & abs(tc$ys-FL_ref[2,2]) < 1e-3) # save a (0,1) point
 all_but_ws <- (1:nrow(tc))[-c(wl,wh)]
-train <- c(sample(all_but_ws, max(500, floor(.25*nrow(tc)))),wl,wh)
+train <- c(sample(all_but_ws, 500),wl,wh)
 test <- (1:nrow(tc))[-train]
 
 # subset training data
@@ -107,9 +113,6 @@ storm_hour  <- substr(storm_time,9,10)
 print(paste("Storm # is", ste, "Year is",storm_year,"Month is",storm_month,
             "Day is",storm_day,"Hour is",storm_hour))
 
-raster_locs <- my_NS_nsv$coords
-if(kern.locs) raster_locs <- my_NS_nsv$mc.locations
-
 if(new.spline){
   ind <- which(substr(hurdat$DateTime, 9, 13)==paste(storm_day, storm_hour))[1]
   hurdat_sub <- hurdat[(ind-24):(ind+72), ] # -12, +36 for 30 min
@@ -124,19 +127,26 @@ if(new.spline){
   track_locs <- hurdat_sub[,8:7]
 }
 
+# Move track locs to unit square as well
+track_locs_std <- matrix(NA, nrow = nrow(track_locs), ncol = ncol(track_locs))
+track_locs_std[,1] <- (track_locs[,1] - FL_rgs[1])/(FL_rgs[2] - FL_rgs[1])
+track_locs_std[,2] <- (track_locs[,2] - FL_rgs[3])/(FL_rgs[4] - FL_rgs[3])
+
 # Calculate the SQUARED distances between the track and raster locations
 # Obtain the minimum distance from the track for each raster grid point
 if(orig_dist){
-  dists <- sqrt(plgp::distance(raster_locs, track_locs))
-  coast_dists <- sqrt(plgp::distance(raster_locs, sea_locs))
+  dists <- sqrt(plgp::distance(x, track_locs_std))
+  # coast_dists <- sqrt(plgp::distance(raster_locs, sea_locs))
 } else {
-  dists <- plgp::distance(raster_locs, track_locs)
-  coast_dists <- plgp::distance(raster_locs, sea_locs)
+  dists <- plgp::distance(x, track_locs_std)
+  # coast_dists <- plgp::distance(raster_locs, sea_locs)
 }
 
 min_dists <- apply(dists, 1, min)
-min_coast_dists <- apply(coast_dists, 1, min)
+# min_coast_dists <- apply(coast_dists, 1, min)
 
+# add distance to track as an input
+x <- cbind(x,min_dists)
 
 # Fit two-layer DGP (exponential cov fn)
 if(pmx){
