@@ -19,8 +19,8 @@ krig <- F
 
 # Read in the previous burned-in values for params and w
 # loads init_param and init_w
-load(paste0("rda/burn_params_FL",if(pmx){"pmx"},".rda"))
-load(paste0("rda/burn_w_FL",if(pmx){"pmx"},".rda"))
+# load(paste0("rda/burn_params_FL",if(pmx){"pmx"},".rda"))
+# load(paste0("rda/burn_w_FL",if(pmx){"pmx"},".rda"))
 
 # Load the appropriate files (most FL storms, or all full storms)
 if(do_FL){
@@ -34,7 +34,7 @@ if(do_FL){
 ste <- 11
 
 # number of iterations for MCMC
-niters <- 30000
+niters <- 50000
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -62,11 +62,11 @@ load("rda/FL_ref.rda")
 wl <- which(abs(tc$xs-FL_ref[1,1]) < 1e-3 & abs(tc$ys-FL_ref[1,2]) < 1e-3) # save a (0,0) point
 wh <- which(abs(tc$xs-FL_ref[2,1]) < 1e-3 & abs(tc$ys-FL_ref[2,2]) < 1e-3) # save a (0,1) point
 all_but_ws <- (1:nrow(tc))[-c(wl,wh)]
-train <- c(sample(all_but_ws, max(500, floor(.25*nrow(tc)))),wl,wh)
+train <- c(sample(all_but_ws, 500),wl,wh)
 test <- (1:nrow(tc))[-train]
 
 # subset training data
-tc_samp <- tc#[train,]
+tc_samp <- tc[train,]
 x <- cbind(tc_samp$xs, tc_samp$ys)
 y <- tc_samp$zs
 # plot(rasterFromXYZ(data.frame(cbind(x,y))))
@@ -78,9 +78,9 @@ xx <- cbind(tc_pred$xs, tc_pred$ys)
 # Fit two-layer DGP (exponential cov fn)
 if(pmx){
   fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
-                       theta_y_0 = init_param[ste,1],
-                       theta_w_0 = init_param[ste,2:3],
-                       w_0 = init_w[[ste]][[1]],
+                       # theta_y_0 = init_param[ste,1],
+                       theta_w_0 = 1000/(.0001/1000),
+                       # w_0 = init_w[[ste]][[1]],
                        true_g = sqrt(.Machine$double.eps),
                        settings = list(w_prior_mean = x,
                                        alpha = list(g = 1.5, theta_w = 1000, theta_y = 1.5),
