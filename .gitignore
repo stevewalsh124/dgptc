@@ -7,6 +7,12 @@ data/*
 2D_examples/rda/
 2D_examples/*.out
 
+*.pdf
+3D_examples/Rout/*
+3D_exmaples/rda/*
+3D_examples/rda/
+3D_examples/*.out
+
 # History files
 .Rhistory
 .Rapp.history
