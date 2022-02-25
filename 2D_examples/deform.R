@@ -8,8 +8,9 @@ library(Morpho) #deformGrid2d
 library(marmap) #griddify
 library(raster) # rasterFromXYZ
 
+niters <- 50000
 k <- 24999 # every kth warping to plot
-tp <- 1 # total plots to produce (excluding original)
+tp <- 2 # total plots to produce (excluding original)
 
 FL <- read.csv("~/NAM-Model-Validation/csv/stormsFL.csv", row.names = 1)$x
 fl <- FL[-which(FL %in% c(5,10,29))]
@@ -27,7 +28,7 @@ for (i in fl) {
 
 # Loop over TCs
 for (ste in 1:18) {
-  load(paste0("rda/FL_fits/storm",ste,"_niters25000.rda")) #loads fit
+  load(paste0("rda/FL_fits/storm",ste,"_niters",niters,".rda")) #loads fit
   
   x <- t(fit$x)
   
