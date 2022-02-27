@@ -34,7 +34,7 @@ if(do_FL){
 ste <- 11
 
 # number of iterations for MCMC
-niters <- 50000
+niters <- 60055
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -77,14 +77,14 @@ xx <- cbind(tc_pred$xs, tc_pred$ys)
 
 # Fit two-layer DGP (exponential cov fn)
 if(pmx){
-  fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
+  fit <- fit_two_layer(x, y, nmcmc = niters, cov = "gaussian", vecchia = T, 
                        # theta_y_0 = init_param[ste,1],
-                       theta_w_0 = 1000/(.0001/1000),
+                       # theta_w_0 = 1000/(.0001/1000),
                        # w_0 = init_w[[ste]][[1]],
                        true_g = sqrt(.Machine$double.eps),
-                       settings = list(w_prior_mean = x,
-                                       alpha = list(g = 1.5, theta_w = 1000, theta_y = 1.5),
-                                       beta = list(g = 3.9, theta_w = .0001/1000, theta_y = 3.9/6)))
+                       settings = list(w_prior_mean = x))#,
+                                       # alpha = list(g = 1.5, theta_w = 1000, theta_y = 1.5),
+                                       # beta = list(g = 3.9, theta_w = .0001/1000, theta_y = 3.9/6)))
 } else {
   fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
                        theta_y_0 = init_param[ste,1],

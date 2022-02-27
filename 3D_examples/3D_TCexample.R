@@ -23,8 +23,8 @@ orig_dist <- T
 
 # Read in the previous burned-in values for params and w
 # loads init_param and init_w
-# load(paste0("rda/burn_params_FL",if(pmx){"pmx"},".rda"))
-# load(paste0("rda/burn_w_FL",if(pmx){"pmx"},".rda"))
+load(paste0("rda/burn_params_FL",if(pmx){"pmx"},".rda"))
+load(paste0("rda/burn_w_FL",if(pmx){"pmx"},".rda"))
 
 # Load the appropriate files (most FL storms, or all full storms)
 if(do_FL){
@@ -38,7 +38,7 @@ if(do_FL){
 ste <- 11
 
 # number of iterations for MCMC
-niters <- 50000
+niters <- 100000
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -151,9 +151,9 @@ x <- cbind(x,min_dists)
 # Fit two-layer DGP (exponential cov fn)
 if(pmx){
   fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
-                       # theta_y_0 = init_param[ste,1], 
-                       # theta_w_0 = init_param[ste,2:3], 
-                       # w_0 = init_w[[ste]][[1]],
+                       theta_y_0 = init_param[ste,1],
+                       theta_w_0 = init_param[ste,2:4],
+                       w_0 = init_w[[ste]][[1]],
                        true_g = sqrt(.Machine$double.eps),
                        settings = list(w_prior_mean = x))
 } else {
@@ -213,6 +213,7 @@ if(krig){
 par(mfrow=c(1,3))
 plot(fit$theta_w[,1], type="l", main="theta_w[,1]")
 plot(fit$theta_w[,2], type="l", main="theta_w[,2]")
+plot(fit$theta_w[,3], type="l", main="theta_w[,2]")
 plot(fit$theta_y, type="l", main="theta_y")
 
 plot(fit$tau2, type="l", main="tau2")
