@@ -34,7 +34,7 @@ if(do_FL){
 ste <- 11
 
 # number of iterations for MCMC
-niters <- 50055
+niters <- 50056
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -81,7 +81,7 @@ if(pmx){
                        # theta_y_0 = init_param[ste,1],
                        # theta_w_0 = 1000/(.0001/1000),
                        # w_0 = init_w[[ste]][[1]],
-                       true_g = sqrt(.Machine$double.eps),
+                       # true_g = sqrt(.Machine$double.eps),
                        settings = list(w_prior_mean = x))#,
                                        # alpha = list(g = 1.5, theta_w = 1000, theta_y = 1.5),
                                        # beta = list(g = 3.9, theta_w = .0001/1000, theta_y = 3.9/6)))
