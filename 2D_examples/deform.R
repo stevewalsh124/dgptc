@@ -62,7 +62,7 @@ for (ste in 1:18) {
   print(ste)
   
   # For each simulated hidden layer: 
-  for(i in k*(1:tp)+1){
+  for(i in k*(1:tp)){
     
     par(mfrow=c(2,2))
     # On the left: the original (unchanged) deformation
