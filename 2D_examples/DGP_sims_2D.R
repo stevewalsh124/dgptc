@@ -6,7 +6,10 @@
 
 # Code based on that of M.A.R. Ferreira, 2016.
 
-library(fields)
+library(fields) # image.plot
+library(Morpho) # deformGrid2d
+library(marmap) # griddify
+library(raster)
 
 ################################
 # Gaussian covariance function #
@@ -44,10 +47,10 @@ plot.gaus <- function(t, phi=1, sigma2=1, tau2=0){
 # Plot Simulations #
 ####################
 
-par(mfrow=c(1,2))
+par(mfrow=c(2,2))
 
 # Currently the same for each layer; can change for individual layers
-phi <- 1/3
+phi <- 1/2
 sigma2 <- 1
 tau2 <- .Machine$double.eps^0.5
 
@@ -62,12 +65,14 @@ for (i in 1:length(xaxis)) for (j in 1:length(yaxis)) s[i+(j-1)*length(xaxis),] 
 # first layer
 t <- as.matrix(dist(s))
 covmatrix <- diag(tau2,nrow(s)) + covfunc.Gaussian(t,phi,sigma2)
-x <- t(chol(covmatrix)) %*% rnorm(nrow(s))
+w1 <- t(chol(covmatrix)) %*% rnorm(nrow(s))
+w2 <- t(chol(covmatrix)) %*% rnorm(nrow(s))
+w <- cbind(w1,w2)
 
 # second layer
-t2 <- as.matrix(dist(x))
+t2 <- as.matrix(dist(w))
 covmatrix2 <- diag(tau2,nrow(s)) + covfunc.Gaussian(t2,phi,sigma2)
-w <- t(chol(covmatrix2)) %*% rnorm(nrow(x))
+y <- t(chol(covmatrix2)) %*% rnorm(nrow(s))
 
 # # third layer
 # t3 <- as.matrix(dist(w))
@@ -75,12 +80,29 @@ w <- t(chol(covmatrix2)) %*% rnorm(nrow(x))
 # z <- t(chol(covmatrix2)) %*% rnorm(nrow(w))
 
 # output; change "matrix(w" to "matrix(z" if using third layer
-y <- matrix(w,nrow=length(xaxis),ncol=length(yaxis),byrow=FALSE)
+yp <- matrix(y,nrow=length(xaxis),ncol=length(yaxis),byrow=FALSE)
 nug <- rnorm(prod(dim(y)), sd = sqrt(tau2))
-image.plot(matrix(x,length(xaxis),length(yaxis)) , 
-           main = bquote(phi == .(phi) ~ ",  " ~ sigma^2 == .(sigma2) ~ ",  "
-                         ~ tau^2 == .(round(tau2,4))), cex.main=1.5)
 
-image.plot(y + matrix(nug, dim(y)[1], dim(y)[2]), 
-           main = bquote(phi == .(phi) ~ ",  " ~ sigma^2 == .(sigma2) ~ ",  "
-                         ~ tau^2 == .(round(tau2,4))), cex.main=1.5)
+# show plots of deformation
+# same as plot(rasterFromXYZ(cbind(s,w1)))
+image.plot(matrix(w1,length(xaxis),length(yaxis)), main = "x to w1") 
+image.plot(matrix(w2,length(xaxis),length(yaxis)), main = "x to w2")
+
+# plot the complete deformation of geographic points
+deformGrid2d(s, w, ngrid=25, pch=19, main=paste("X to W"), gridcol = "black", lines = F)
+
+# Deep GP is made by iso GP of (iso GP of locns) = iso GP of (deformed space)
+irreg <- as.data.frame(cbind(w,y))
+colnames(irreg) <- c("lon","lat","y")
+reg <- griddify(irreg, nlon = 40, nlat = 60)
+plot(reg, main = "W to Y")
+
+par(mfrow=c(1,2))
+# compare the stationary, isotropic GP on the deformed space...
+plot(reg, main = "W to Y (iso, stat)")
+# ... with the corresponding nonstationary GP on geographic points
+plot(rasterFromXYZ(cbind(s,y)), main = "X to Y (nonst)")
+# # same as above
+# image.plot(yp + matrix(nug, length(xaxis),length(yaxis)),
+#            main = bquote("X to Y\n" ~ phi == .(round(phi,1)) ~ ",  " ~ sigma^2 == .(round(sigma2,1)) ~ ",  "
+#                          ~ tau^2 == .(round(tau2,4))), cex.main=1.5)
