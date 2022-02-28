@@ -8,14 +8,14 @@ library(Morpho) #deformGrid2d
 library(marmap) #griddify
 library(raster) # rasterFromXYZ
 
-niters <- 50000
-k <- 24999 # every kth warping to plot
-tp <- 2 # total plots to produce (excluding original)
+niters <- 50055
+k <- 10000 # every kth warping to plot
+tp <- floor(niters/k) # total plots to produce (excluding original)
 
 FL <- read.csv("~/NAM-Model-Validation/csv/stormsFL.csv", row.names = 1)$x
 fl <- FL[-which(FL %in% c(5,10,29))]
 
-pdf(paste0("pdf/deform/deform_compare_k",k,"_tp",tp,".pdf"))
+pdf(paste0("pdf/deform/deform_niters",niters,"_k",k,"_tp",tp,".pdf"))
 
 load("rda/all_FL_tracks.rda")
 load("rda/FL_rgs.rda")
