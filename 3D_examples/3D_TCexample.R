@@ -23,8 +23,8 @@ orig_dist <- T
 
 # Read in the previous burned-in values for params and w
 # loads init_param and init_w
-load(paste0("rda/burn_params_FL",if(pmx){"pmx"},".rda"))
-load(paste0("rda/burn_w_FL",if(pmx){"pmx"},".rda"))
+# load(paste0("rda/burn_params_FL",if(pmx){"pmx"},".rda"))
+# load(paste0("rda/burn_w_FL",if(pmx){"pmx"},".rda"))
 
 # Load the appropriate files (most FL storms, or all full storms)
 if(do_FL){
@@ -38,7 +38,7 @@ if(do_FL){
 ste <- 11
 
 # number of iterations for MCMC
-niters <- 100000
+niters <- 50053
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -150,10 +150,10 @@ x <- cbind(x,min_dists)
 
 # Fit two-layer DGP (exponential cov fn)
 if(pmx){
-  fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
-                       theta_y_0 = init_param[ste,1],
-                       theta_w_0 = init_param[ste,2:4],
-                       w_0 = init_w[[ste]][[1]],
+  fit <- fit_two_layer(x, y, nmcmc = niters, cov = "exp2",
+                       # theta_y_0 = init_param[ste,1],
+                       # theta_w_0 = init_param[ste,2:4],
+                       # w_0 = init_w[[ste]][[1]],
                        true_g = sqrt(.Machine$double.eps),
                        settings = list(w_prior_mean = x))
 } else {
