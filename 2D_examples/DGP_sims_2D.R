@@ -1,8 +1,8 @@
-############################################
-# Simulating deep GPs, naively
+##########################
+# Simulating deep GPs
 # Steve Walsh
 # January 28 2022
-############################################
+##########################
 
 # Code based on that of M.A.R. Ferreira, 2016.
 
@@ -14,9 +14,9 @@ library(marmap) # griddify
 library(raster) # plot(.raster)
 
 # How many simulations do you want?
-nsims <- 10
-# # of pixels per simulation? (perfect square is best)
-npix <- 4900
+nsims <- 15
+# # of pixels per simulation? (11^2, 21^2, 31^2, etc.)
+npix <- 41^2
 
 ################################
 # Gaussian covariance function #
@@ -72,19 +72,20 @@ for (i in 1:nsims) {
   
   par(mfrow=c(2,2))
   # Currently the same for each layer; can change for individual layers
-  phi <- 0.025*i^1.5
-  sigma2 <- 0.5*i
+  phi_y <- 1/3
+  phi_w <- 0.01*i^3
+  sigma2 <- 1
   tau2 <- .Machine$double.eps^0.5
   
   # ... first layer continued
-  covmatrix <- diag(tau2,nrow(s)) + covfunc.Gaussian(t,phi,sigma2)
+  covmatrix <- diag(tau2,nrow(s)) + covfunc.Gaussian(t,phi_w,sigma2)
   w1 <- t(chol(covmatrix)) %*% rnorm(nrow(s)) + s[,1] # + ss
   w2 <- t(chol(covmatrix)) %*% rnorm(nrow(s)) + s[,2] # + ss
   w <- cbind(w1,w2)
   
   # second layer
   t2 <- as.matrix(dist(w))
-  covmatrix2 <- diag(tau2,nrow(s)) + covfunc.Gaussian(t2,phi,sigma2)
+  covmatrix2 <- diag(tau2,nrow(s)) + covfunc.Gaussian(t2,phi_y,sigma2)
   y <- t(chol(covmatrix2)) %*% rnorm(nrow(s))
   
   # # third layer
@@ -96,16 +97,62 @@ for (i in 1:nsims) {
   yp <- matrix(y,nrow=length(xaxis),ncol=length(yaxis),byrow=FALSE)
   nug <- rnorm(prod(dim(y)), sd = sqrt(tau2))
   
+  # establish which points in x (and y) are reference points
+  # which low (wl) is (0.5,0.1) and which high (wh) is (0.5,0.9)
+  wl <- which(abs(s[,1]-0.5) < 1e-3 & abs(s[,2]-0.1) < 1e-3)
+  wh <- which(abs(s[,1]-0.5) < 1e-3 & abs(s[,2]-0.9) < 1e-3)
+  
+  # If reference point pair are not in training set, skip
+  if(length(wl)==0 | length(wh)==0) next
+
+  zz <- s[wl,]
+  zo <- s[wh,]
+  # points(zz[1],zz[2], lwd=3) # add to plot above
+  # points(zo[1],zo[2], lwd=3) # add to plot above
+  
+  # this finds the length of the original reference vector
+  zzo <- zz - zo
+  ref.scale <- sqrt(t(zzo)%*%zzo)
+
+  # Don't plot: the original (unadjusted) deformation
+  # deformGrid2d(s, w, ngrid=25, pch=19, main=paste(i, "old"), gridcol = "black")
+  
+  # Take these deformed points (y) and rotate/scale/translate them
+  # to match orig lat/lon points (x) as well as possible
+  st <- t(s)
+  wt <- t(w)
+  
+  # First: undo rotation
+  ang <- function(u,v){acos((t(u)%*%v)/((sqrt(t(u)%*%u) * sqrt(t(v)%*%v))))}
+  u <- st[,wh] - st[,wl]
+  v <- wt[,wh] - wt[,wl]
+  phi <- ang(u,v)
+  rotMtx <- matrix(c(cos(phi),-sin(phi),sin(phi),cos(phi)),2,2)
+  y.rot <- rotMtx %*% wt
+  
+  # Second: undo scale
+  # find the length of the deformed reference vector
+  y.ref <- wt[,wl] - wt[,wh]
+  scale.y <- sqrt(t(y.ref)%*%y.ref)
+  # numerator comes from length of vector with points zz, zo
+  scale.back =  c(ref.scale/scale.y)#1/sqrt(sum(y.translate[,2]^2))
+  y.rot.scale = y.rot * scale.back
+  
+  # Third: Translate back
+  translation <- y.rot.scale[,wl] - st[,wl]
+  y.rot.scale.tran <- y.rot.scale - translation
+  ww <- t(y.rot.scale.tran)
+
   # show plots of deformation
   # same as plot(rasterFromXYZ(cbind(s,w1)))
   image.plot(matrix(w1,length(xaxis),length(yaxis)), main = "x to w1") 
   image.plot(matrix(w2,length(xaxis),length(yaxis)), main = "x to w2")
   
   # plot the complete deformation of geographic points
-  deformGrid2d(s, w, ngrid=25, pch=19, main=paste("X to W"), gridcol = "black", lines = F)
+  deformGrid2d(s, ww, ngrid=25, pch=19, main=paste("X to W"), gridcol = "black", lines = F)
   
   # Deep GP is made by iso GP of (iso GP of locns) = iso GP of (deformed space)
-  irreg <- as.data.frame(cbind(w,y))
+  irreg <- as.data.frame(cbind(ww,y))
   colnames(irreg) <- c("lon","lat","y")
   reg <- griddify(irreg, nlon = 40, nlat = 60)
   plot(reg, main = "W to Y")
