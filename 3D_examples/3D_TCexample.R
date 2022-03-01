@@ -38,7 +38,7 @@ if(do_FL){
 ste <- 11
 
 # number of iterations for MCMC
-niters <- 50053
+niters <- 50083
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -150,7 +150,7 @@ x <- cbind(x,min_dists)
 
 # Fit two-layer DGP (exponential cov fn)
 if(pmx){
-  fit <- fit_two_layer(x, y, nmcmc = niters, cov = "exp2",
+  fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=1.5, vecchia=T,
                        # theta_y_0 = init_param[ste,1],
                        # theta_w_0 = init_param[ste,2:4],
                        # w_0 = init_w[[ste]][[1]],
