@@ -15,6 +15,8 @@ library(raster) # plot(.raster)
 
 # How many simulations do you want?
 nsims <- 10
+# # of pixels per simulation? (perfect square is best)
+npix <- 4900
 
 ################################
 # Gaussian covariance function #
@@ -52,8 +54,8 @@ plot.gaus <- function(t, phi=1, sigma2=1, tau2=0){
 # Plot Simulations #
 ####################
 
-xaxis <- seq(0,1,0.0125)
-yaxis <- seq(0,1,0.0125)
+xaxis <- seq(0,1, length.out = sqrt(npix))
+yaxis <- seq(0,1, length.out = sqrt(npix))
 
 # original lat lon coords
 s <- matrix(NA,nrow=length(xaxis)*length(yaxis),ncol=2)
