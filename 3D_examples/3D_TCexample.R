@@ -63,10 +63,16 @@ tc$zs <- (tc$value - mean(tc$value))/(sd(tc$value))
 # set training and test sets
 set.seed(1) # keep a consisten set of train/test
 load("../2D_examples/rda/FL_ref.rda")
-wl <- which(abs(tc$xs-FL_ref[1,1]) < 1e-3 & abs(tc$ys-FL_ref[1,2]) < 1e-3) # save a (0,0) point
-wh <- which(abs(tc$xs-FL_ref[2,1]) < 1e-3 & abs(tc$ys-FL_ref[2,2]) < 1e-3) # save a (0,1) point
-all_but_ws <- (1:nrow(tc))[-c(wl,wh)]
-train <- c(sample(all_but_ws, 500),wl,wh)
+zz <- FL_ref[1,]
+zo <- FL_ref[2,]
+sw <- FL_ref[3,]
+se <- FL_ref[4,]
+wl <- which(abs(tc$xs-zz[1]) < 1e-3 & abs(tc$ys-zz[2]) < 1e-3) # (0,0) point
+wh <- which(abs(tc$xs-zo[1]) < 1e-3 & abs(tc$ys-zo[2]) < 1e-3) # (0,1) point
+ww <- which(abs(tc$xs-sw[1]) < 1e-3 & abs(tc$ys-sw[2]) < 1e-3) # (0,1) point
+we <- which(abs(tc$xs-se[1]) < 1e-3 & abs(tc$ys-se[2]) < 1e-3) # (0,1) point
+all_but_ws <- (1:nrow(tc))[-c(wl,wh,ww,we)]
+train <- c(sample(all_but_ws, 496),wl,wh,ww,we)
 test <- (1:nrow(tc))[-train]
 
 # subset training data
