@@ -38,7 +38,7 @@ if(do_FL){
 ste <- 11
 
 # number of iterations for MCMC
-niters <- 50043
+niters <- 50044
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -76,7 +76,7 @@ train <- c(sample(all_but_ws, 496),wl,wh,ww,we)
 test <- (1:nrow(tc))[-train]
 
 # subset training data
-tc_samp <- tc#[train,]
+tc_samp <- tc[train,]
 x <- cbind(tc_samp$xs, tc_samp$ys)
 y <- tc_samp$zs
 # plot(rasterFromXYZ(data.frame(cbind(x,y))))
@@ -156,7 +156,7 @@ x <- cbind(x,min_dists)
 
 # Fit two-layer DGP (exponential cov fn)
 if(pmx){
-  fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia=T,
+  fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=1.5, vecchia=T,
                        # theta_y_0 = init_param[ste,1],
                        # theta_w_0 = init_param[ste,2:4],
                        # w_0 = init_w[[ste]][[1]],
