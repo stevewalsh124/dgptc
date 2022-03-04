@@ -4,11 +4,13 @@
 # February 14 2022                          #
 #############################################
 
+tic <- proc.time()[3]
+
 library(Morpho) #deformGrid2d
 library(marmap) #griddify
 library(raster) # rasterFromXYZ
 
-niters <- 50055
+niters <- 50058
 k <- 10000 # every kth warping to plot
 tp <- floor(niters/k) # total plots to produce (excluding original)
 
@@ -26,39 +28,38 @@ for (i in fl) {
     (FL_rgs[4] - FL_rgs[3])
 }
 
+# Get reference points and scale
+load("rda/FL_ref.rda")
+zz <- FL_ref[1,]
+zo <- FL_ref[2,]
+sw <- FL_ref[3,]
+se <- FL_ref[4,]
+# points(zz[1],zz[2], lwd=3) # add to plot above
+# points(zo[1],zo[2], lwd=3) # add to plot above
+
+# this finds the length of the original reference vector
+zzo <- zz - zo
+ref.scale <- sqrt(t(zzo)%*%zzo)
+
 # Loop over TCs
 for (ste in 1:18) {
   load(paste0("rda/FL_fits/storm",ste,"_niters",niters,".rda")) #loads fit
   
   x <- t(fit$x)
-  
-  # the deformation often negates some of the values; remove negatives
-  # this removes any reflections incurred within the hidden layer
-  W <- list()
-  for (i in 1:fit$nmcmc) W[[i]] <- ifelse(fit$w[[i]] < 0, -fit$w[[i]], fit$w[[i]])
 
   # The original non-invariant plots; shown in left side for comparison
   # par(mfrow=c(1,1))
   # deformGrid2d(fit$x, W[[1]], ngrid=25, pch=19, main=paste(ste, 1), gridcol = "black")
   
-  # Get reference points and scale
-  load("rda/FL_ref.rda")
-  zz <- FL_ref[1,]
-  zo <- FL_ref[2,]
-  # points(zz[1],zz[2], lwd=3) # add to plot above
-  # points(zo[1],zo[2], lwd=3) # add to plot above
-  
-  # this finds the length of the original reference vector
-  zzo <- zz - zo
-  ref.scale <- sqrt(t(zzo)%*%zzo)
-  
   # establish which points in x (and y) are reference points
   # which low (wl) is (0,0) and which high (wh) is (0,1)
   wl <- which(abs(x[1,]-FL_ref[1,1]) < 1e-3 & abs(x[2,]-FL_ref[1,2]) < 1e-3) # (0,0) point
   wh <- which(abs(x[1,]-FL_ref[2,1]) < 1e-3 & abs(x[2,]-FL_ref[2,2]) < 1e-3) # (0,1) point
+  ww <- which(abs(x[1,]-sw[1]) < 1e-3 & abs(x[2,]-sw[2]) < 1e-3) # (0,1) point
+  we <- which(abs(x[1,]-se[1]) < 1e-3 & abs(x[2,]-se[2]) < 1e-3) # (0,1) point
   
   # If reference point pair are not in training set, skip
-  if(length(wl)==0 | length(wh)==0) next
+  if(length(wl)==0 | length(wh)==0 | length(ww)==0 | length(we)==0) next
   print(ste)
   
   # For each simulated hidden layer: 
@@ -66,11 +67,11 @@ for (ste in 1:18) {
     
     par(mfrow=c(2,2))
     # On the left: the original (unchanged) deformation
-    deformGrid2d(fit$x, W[[i]], ngrid=25, pch=19, main=paste(ste, i, "old"), gridcol = "black")
+    deformGrid2d(fit$x, fit$w[[i]], ngrid=25, pch=19, main=paste(ste, i, "old"), gridcol = "black")
     
     # Take these deformed points (y) and rotate/scale/translate them
     # to match orig lat/lon points (x) as well as possible
-    y <- t(W[[i]])
+    y <- t(fit$w[[i]])
 
     # First: undo rotation
     ang <- function(u,v){acos((t(u)%*%v)/((sqrt(t(u)%*%u) * sqrt(t(v)%*%v))))}
@@ -91,14 +92,18 @@ for (ste in 1:18) {
     # Third: Translate back
     translation <- y.rot.scale[,wl] - x[,wl]
     y.rot.scale.tran <- y.rot.scale - translation
-    ww <- t(y.rot.scale.tran)
+    wstar <- t(y.rot.scale.tran)
+    
+    # flip the graph if necessary in either direction
+    if(wstar[ww,1]>wstar[we,1]){wstar[,1] <- (wstar[,1]-wstar[ww,1])/(wstar[we,1]-wstar[ww,1])}
+    if(wstar[wh,2]>wstar[wl,2]){wstar[,2] <- (wstar[,2]-wstar[wl,2])/(wstar[wh,2]-wstar[wl,2])}
     
     # On right: plot a deformation that is rotation-invariant wrt original lat/lon
-    deformGrid2d(fit$x, ww, ngrid=25, pch=19, main=paste(ste, i), gridcol = "black")
+    deformGrid2d(fit$x, wstar, ngrid=25, pch=19, main=paste(ste, i), gridcol = "black")
     
     # Move the deformed points onto a regular grid
     yy <- fit$y
-    irreg <- as.data.frame(cbind(ww,yy))
+    irreg <- as.data.frame(cbind(wstar,yy))
     colnames(irreg) <- c("lon","lat","y")
     reg <- griddify(irreg, nlon = 40, nlat = 60)
     
@@ -116,3 +121,8 @@ for (ste in 1:18) {
 }
 
 dev.off()
+
+toc <- proc.time()[3]
+
+toc - tic
+
