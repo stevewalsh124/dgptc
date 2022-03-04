@@ -16,7 +16,7 @@ k <- 100
 
 pdf(paste0("pdf/all_FL_chains_",niters,"_thin",k,".pdf"))
 
-pmx_means <- pmx_medians <- pm0_means <- matrix(NA, 18, 6)
+pmx_means <- pmx_medians <- pm0_means <- matrix(NA, 18, 7)
 colnames(pmx_means) <- colnames(pmx_medians) <- colnames(pm0_means) <- 
   c("theta_y", "theta_w1","theta_w2","tau2","min_w","max_w","g")
 
@@ -48,7 +48,7 @@ for (ste in 1:18) {
     acf(fit$theta_w[,1], lag.max = length(fit$theta_w[,1]))
     acf(fit$theta_w[,2], lag.max = length(fit$theta_w[,2]))
     acf(fit$tau2, lag.max = length(fit$tau2))
-    acf(fit$g, lag.max = length(fit$g))
+    if(length(unique(fit$g)) > 1) acf(fit$g, lag.max = length(fit$g))
     
     # Save mean and median info for each TC,
     # as well as min and max over all w's per TC
