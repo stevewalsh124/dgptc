@@ -63,7 +63,7 @@ for (ste in 1:18) {
       pmx_medians[ste,2:3] <- apply(fit$theta_w,2,median)
       pmx_medians[ste,4] <- median(fit$tau2)
       pmx_medians[ste,5:6] <- range(unlist(fit$w))
-      pmx_means[ste,7] <- median(fit$g)
+      pmx_medians[ste,7] <- median(fit$g)
       
     } else {
       pm0_means[ste,1] <- mean(fit$theta_y)
@@ -84,6 +84,6 @@ save(pmx_medians, file = paste0("rda/FL_summaries/pmx_medians_",niters,"_thin",k
 par(mfrow=c(2,3))
 for (i in (1:ncol(pmx_means))[-5]) hist(pmx_means[,i], 
                                   main=paste(colnames(pmx_means)[i],"means"))
-for (i in (1:ncol(pmx_medians)[-6])) hist(pmx_medians[,i], 
+for (i in (1:ncol(pmx_medians))[-6]) hist(pmx_medians[,i], 
                                     main=paste(colnames(pmx_medians)[i], "medians"))
 dev.off()
