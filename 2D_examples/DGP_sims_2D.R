@@ -24,32 +24,6 @@ npix <- 41^2
 
 covfunc.Gaussian <- function(t,phi,sigma2) {sigma2 * exp(-t^2/phi^2)}
 
-matrix.sqrt <- function(H)
-{
-  # Computes square root of nonnegative definite symmetric matrix using spectral decomposition
-  
-  if(nrow(H)==1) {H.sqrt = matrix(sqrt(H),nrow=1,ncol=1)} else
-  {
-    H.eigen = eigen(H)
-    H.eigen.values = H.eigen$values    
-    H.eigen.values[abs(H.eigen$values) < 10^(-10)] = 0
-    H.sqrt = H.eigen$vectors %*% diag(sqrt(H.eigen.values)) %*% t(H.eigen$vectors)
-  }  
-
-  H.sqrt
-}
-
-# With nugget effect
-plot.gaus <- function(t, phi=1, sigma2=1, tau2=0){
-  covmatrix <- diag(tau2,nrow(t)) + covfunc.Gaussian(t,phi,sigma2)
-  x <- matrix.sqrt(covmatrix) %*% rnorm(nrow(s))
-  z <- matrix(x,nrow=length(xaxis),ncol=length(yaxis),byrow=FALSE)
-  image.plot(z, main = bquote(phi == .(phi) ~ ",  " ~ sigma^2 == 
-                                .(sigma2) ~ ",  " ~ tau^2 == .(tau2)),
-             cex.main=1.5)
-}
-
-
 ####################
 # Plot Simulations #
 ####################
@@ -91,7 +65,7 @@ for (i in 1:nsims) {
   # # third layer
   # t3 <- as.matrix(dist(w))
   # covmatrix3 <- diag(tau2,nrow(s)) + covfunc.Gaussian(t3,phi,sigma2)
-  # z <- t(chol(covmatrix2)) %*% rnorm(nrow(w))
+  # z <- t(chol(covmatrix3)) %*% rnorm(nrow(w))
   
   # output; change "matrix(w" to "matrix(z" if using third layer
   yp <- matrix(y,nrow=length(xaxis),ncol=length(yaxis),byrow=FALSE)
