@@ -207,7 +207,7 @@ for (j in 3:18) lines(pk2[index_list$lowres.ix,c(1,j)], col="blue")
 lines(pk2[index_list$lowres.ix,c(1,j)] + cbind(0, 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
 lines(pk2[index_list$lowres.ix,c(1,j)] - cbind(0, 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
 
-plot(pk2[index_list$lowres.ix,c(1,j)], col="blue", type="l",  main = "log, only chg k & P(k) WRONG")
+plot(pk2[index_list$lowres.ix,c(1,j)], col="blue", type="l",  main = "orig, only chg k & P(k) WRONG")
 for (j in 3:18) lines(pk2[index_list$lowres.ix,c(1,j)], col="blue")
 lines(pk2[index_list$lowres.ix,c(1,j)] + 2*sqrt(1/prec_lowres[index_list$lowres.ix]))
 lines(pk2[index_list$lowres.ix,c(1,j)] - 2*sqrt(1/prec_lowres[index_list$lowres.ix]))
