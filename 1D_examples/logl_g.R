@@ -28,8 +28,11 @@ check_inputs <- deepgp:::check_inputs
 check_settings <- deepgp:::check_settings
 check_initialization <- deepgp:::check_initialization
 gibbs_two_layer <- deepgp:::gibbs_two_layer
-
-fit_two_layer_SW(x, y, nmcmc = 100, true_g = 16)
+MaternFun <- deepgp:::MaternFun
+Exp2Fun <- deepgp:::Exp2Fun
+invdet <- deepgp:::invdet
+sample_theta <- deepgp:::sample_theta
+eps <- sqrt(.Machine$double.eps)
 
 fit_two_layer_SW <- function (x, y, D = ifelse(is.matrix(x), ncol(x), 1), nmcmc = 10000, 
           verb = TRUE, w_0 = NULL, g_0 = 0.01, theta_y_0 = 0.1, theta_w_0 = 0.1, 
@@ -67,6 +70,7 @@ fit_two_layer_SW <- function (x, y, D = ifelse(is.matrix(x), ncol(x), 1), nmcmc 
                                    initial, true_g, settings, v, m)
   }
   else {
+    # check if length(true_g) is equal to 1, or nrow(as.matrix(x))
     if(length(true_g)==1){
       samples <- gibbs_two_layer(x, y, nmcmc, D, verb, initial, 
                                  true_g, settings, cov, v)
@@ -86,19 +90,15 @@ fit_two_layer_SW <- function (x, y, D = ifelse(is.matrix(x), ncol(x), 1), nmcmc 
   return(out)
 }
 
-
+# use this version when g is a vector
 gibbs_two_layer_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings, cov, v){
   print("using SW")
   dx <- sq_dist(x)
   dw <- sq_dist(initial$w)
-  g <- vector(length = nmcmc)
   if (is.null(true_g)) {g[1] <- initial$g} else {
-    if(length(true_g)==1) {
-      g[1] <- true_g } else{
-        if(length(true_g) != length(x)) stop("true_g should be length 1 or length of x")
+        if(length(true_g) != nrow(x)) stop("true_g should be length 1 or length of x")
         g <- matrix(nrow = nmcmc, ncol = length(true_g))
         g[1,] <- true_g
-      }
   }
   theta_y <- vector(length = nmcmc)
   theta_y[1] <- initial$theta_y
@@ -124,7 +124,7 @@ gibbs_two_layer_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings,
     else {
       if(length(true_g)==1) {g[j] <- true_g} else {g[j,] <- true_g}
     }
-    samp <- sample_theta_SW(y, dw, g[j], theta_y[j - 1], alpha = settings$alpha$theta_y, 
+    samp <- sample_theta_SW(y, dw, g[j,], theta_y[j - 1], alpha = settings$alpha$theta_y, 
                          beta = settings$beta$theta_y, l = settings$l, u = settings$u, 
                          outer = TRUE, ll_prev = ll_outer, v = v, cov = cov, 
                          tau2 = TRUE)
@@ -140,7 +140,7 @@ gibbs_two_layer_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings,
                            u = settings$u, outer = FALSE, v = v, cov = cov)
       theta_w[j, i] <- samp$theta
     }
-    samp <- sample_w_SW(y, w[[j - 1]], dw, dx, g[j], theta_y[j], 
+    samp <- sample_w_SW(y, w[[j - 1]], dw, dx, g[j,], theta_y[j], 
                      theta_w[j, ], ll_prev = ll_outer, v = v, cov = cov, 
                      prior_mean = settings$w_prior_mean)
     w[[j]] <- samp$w
@@ -151,11 +151,7 @@ gibbs_two_layer_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings,
               w = w, tau2 = tau2))
 }
 
-# sample_theta (when outer=TRUE)
-# sample_w 
-# logl
-# MaternFun, Exp2Fun
-
+# change sample_theta for the outer=TRUE case
 sample_theta_SW <- function (out_vec, in_dmat, g, theta_t, alpha, beta, l, u, outer, 
                                    ll_prev = NULL, v, cov, tau2 = FALSE){
   theta_star <- runif(1, min = l * theta_t/u, max = u * theta_t/l)
@@ -175,6 +171,7 @@ sample_theta_SW <- function (out_vec, in_dmat, g, theta_t, alpha, beta, l, u, ou
   }
 }
 
+# change sample_w (not the prior, just logl)
 sample_w_SW <- function (out_vec, w_t, w_t_dmat, in_dmat, g, theta_y, theta_w, 
           ll_prev = NULL, v, cov, prior_mean) {
   D <- ncol(w_t)
@@ -220,3 +217,35 @@ sample_w_SW <- function (out_vec, w_t, w_t_dmat, in_dmat, g, theta_y, theta_w,
   }
   return(list(w = w_t, ll = ll_prev, dw = dw))
 }
+
+# change the log likelihood evaluation
+logl_SW <- function (out_vec, in_dmat, g, theta, outer = TRUE, v, cov, tau2 = FALSE){
+    n <- length(out_vec)
+    if (cov == "matern") {
+      K <- MaternFun(in_dmat, c(1, theta, 0, v)) + diag(g)
+    }
+    else K <- Exp2Fun(in_dmat, c(1, theta, eps)) + diag(g)
+    id <- invdet(K)
+    quadterm <- t(out_vec) %*% id$Mi %*% (out_vec)
+    if (outer) {
+      logl <- (-n * 0.5) * log(quadterm) - 0.5 * id$ldet
+    }
+    else logl <- (-0.5) * id$ldet - 0.5 * quadterm
+    if (tau2) {
+      tau2 <- c(quadterm)/n
+    }
+    else tau2 <- NULL
+    return(list(logl = c(logl), tau2 = tau2))
+}
+
+# MaternFun, Exp2Fun: don't change these, just add the diagonal outside of C code
+
+# try it out
+
+# check to make sure results are the same for scalar g
+set.seed(1)
+fit <- fit_two_layer(x, y, nmcmc = 1000, true_g = 1e-4)
+set.seed(1)
+fit2 <- fit_two_layer_SW(x, y, nmcmc = 1000, true_g = rep(1e-4, nrow(as.matrix(x))))
+
+all.equal(fit$theta_y, fit2$theta_y)
