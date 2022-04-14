@@ -22,6 +22,10 @@ vars <- 1/prec_lowres[index_list$lowres.ix]
 x <- log10(k[index_list$lowres.ix])
 y <- log10(pk2[index_list$lowres.ix, bte])
 y_avg <- rowMeans(log10(pk2[index_list$lowres.ix, 3:18]))
+
+# save var(y_avg) to adjust prec values in the final fit call
+sigma2_y <- var(y_avg)
+
 x <- (x - min(x))/(max(x)-min(x))
 y <- (y - mean(y))/sd(y)
 y_avg <- (y_avg - mean(y_avg))/sd(y_avg)
@@ -263,4 +267,20 @@ all.equal(fit$tau2, fit3$tau2)
 for(i in 1:nrow(as.matrix(x))) if(!all.equal(fit$g, fit3$g[,i])) stop("g's not equal :(")
 
 # run for actual data
-fit4 <- fit_two_layer_SW(x, y_avg, nmcmc = 10000, true_g = vars/16)
+fit4 <- fit_two_layer_SW(x, y_avg, nmcmc = 11000, true_g = vars*sigma2_y/16)
+fit4 <- trim(fit4, 1000)
+mean(fit4$theta_y)
+mean(fit4$tau2)
+mean(fit4$theta_w)
+
+fit5 <- fit_two_layer_SW(x, 3*y_avg, nmcmc = 11000, true_g = vars*sigma2_y/16)
+fit5 <- trim(fit5, 1000)
+mean(fit5$theta_y)
+mean(fit5$tau2)
+mean(fit5$theta_w)
+
+fit6 <- fit_two_layer_SW(x, y_avg/3, nmcmc = 11000, true_g = vars*sigma2_y/16)
+fit6 <- trim(fit6, 1000)
+mean(fit6$theta_y)
+mean(fit6$tau2)
+mean(fit6$theta_w)
