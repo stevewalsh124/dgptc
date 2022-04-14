@@ -21,9 +21,12 @@ vars <- 1/prec_lowres[index_list$lowres.ix]
 # wavenumber is X, a particular lowres run in Y
 x <- log10(k[index_list$lowres.ix])
 y <- log10(pk2[index_list$lowres.ix, bte])
+y_avg <- rowMeans(log10(pk2[index_list$lowres.ix, 3:18]))
 x <- (x - min(x))/(max(x)-min(x))
 y <- (y - mean(y))/sd(y)
+y_avg <- (y_avg - mean(y_avg))/sd(y_avg)
 
+# link the functions from the package
 check_inputs <- deepgp:::check_inputs
 check_settings <- deepgp:::check_settings
 check_initialization <- deepgp:::check_initialization
@@ -222,9 +225,9 @@ sample_w_SW <- function (out_vec, w_t, w_t_dmat, in_dmat, g, theta_y, theta_w,
 logl_SW <- function (out_vec, in_dmat, g, theta, outer = TRUE, v, cov, tau2 = FALSE){
     n <- length(out_vec)
     if (cov == "matern") {
-      K <- MaternFun(in_dmat, c(1, theta, 0, v)) + diag(g)
+      K <- MaternFun(in_dmat, c(1, theta, 0, v)) + diag(1*g) #tau2=1 here, nugget is tau2*g
     }
-    else K <- Exp2Fun(in_dmat, c(1, theta, eps)) + diag(g)
+    else K <- Exp2Fun(in_dmat, c(1, theta, eps)) + diag(1*g) #tau2=1 here, nugget is tau2*g
     id <- invdet(K)
     quadterm <- t(out_vec) %*% id$Mi %*% (out_vec)
     if (outer) {
@@ -241,11 +244,23 @@ logl_SW <- function (out_vec, in_dmat, g, theta, outer = TRUE, v, cov, tau2 = FA
 # MaternFun, Exp2Fun: don't change these, just add the diagonal outside of C code
 
 # try it out
-
 # check to make sure results are the same for scalar g
 set.seed(1)
-fit <- fit_two_layer(x, y, nmcmc = 1000, true_g = 1e-4)
+fit <- fit_two_layer(x, y, nmcmc = 100, true_g = 1e-4)
 set.seed(1)
-fit2 <- fit_two_layer_SW(x, y, nmcmc = 1000, true_g = rep(1e-4, nrow(as.matrix(x))))
+fit2 <- fit_two_layer_SW(x, y, nmcmc = 100, true_g = 1e-4) #doesn't actually use SW version (scalar)
+set.seed(1)
+fit3 <- fit_two_layer_SW(x, y, nmcmc = 100, true_g = rep(1e-4, nrow(as.matrix(x))))
 
 all.equal(fit$theta_y, fit2$theta_y)
+all.equal(fit$theta_w, fit2$theta_w)
+all.equal(fit$tau2, fit2$tau2)
+all.equal(fit$g, fit2$g)
+
+all.equal(fit$theta_y, fit3$theta_y)
+all.equal(fit$theta_w, fit3$theta_w)
+all.equal(fit$tau2, fit3$tau2)
+for(i in 1:nrow(as.matrix(x))) if(!all.equal(fit$g, fit3$g[,i])) stop("g's not equal :(")
+
+# run for actual data
+fit4 <- fit_two_layer_SW(x, y_avg, nmcmc = 10000, true_g = vars/16)
