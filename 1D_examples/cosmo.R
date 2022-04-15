@@ -146,6 +146,8 @@ plot(k, sqrt(1/prec_lowres), type="l", main = "SD = sqrt(1/precision)")
 plot(k, sqrt(1/prec_lowres), type="l", log="xy", main = "SD = sqrt(1/precision), log scale")
 plot(k[index_list$lowres.ix], sqrt(1/prec_lowres[index_list$lowres.ix]), 
      type="l", log="xy", main = "SD = sqrt(1/precision), log scale, only lowres_index")
+plot(log10(k[index_list$lowres.ix]), log10(sqrt(1/prec_lowres[index_list$lowres.ix])), 
+     type="l", main = "SD = sqrt(1/precision), log10 scale, only lowres_index")
 
 # Showing what the data originally look like
 plot(pk2[,1:2], type="l",  log="xy", xlab="k", ylab = "P(k)", col="green",
@@ -157,7 +159,7 @@ legend("bottomleft",c("lo","hi","pert"), col=c("blue","red","green"), lty=1)
 # Show which low-res values have precisions
 ind.plot <- ifelse(1:length(k) %in% index_list$lowres.ix, 1000, NA)
 hi.ind.plot <- ifelse(1:length(k) %in% index_list$highres.ix, 1000, NA)
-pt.ind.plot <- ifelse(1:length(k) %in% index_list$highres.ix, 1000, NA)
+pt.ind.plot <- ifelse(1:length(k) %in% index_list$pert.ix, 1000, NA)
 
 # Showing what the data originally look like
 plot(cbind(pk2[,1], ifelse(pk2[,2] == 1, NA, pk2[,2])), type="l",  
@@ -167,56 +169,58 @@ for(j in 3:18) lines(pk2[,c(1,j)], col="blue")
 for(j in 19) lines(pk2[,c(1,j)], col="red")
 lines(k,ind.plot)
 lines(k,500+hi.ind.plot, lty=2)
-lines(k,-500+pt.ind.plot, lty=2)
-legend("bottomleft",c("lo","hi","pert","lowres index", "highres/pt index"), col=c("blue","red","green","black","black"), lty=c(1,1,1,1,2))
+lines(k,-500+pt.ind.plot, lty=3)
+legend("topright",c("lo","hi","pert","lowres index", "highres index","pt index"), 
+       col=c("blue","red","green","black","black","black"), lty=c(1,1,1,1,2,3), cex = 0.9)
 
 # all of the data, none removed
-plot(pk2[,c(1,3)], col="blue", log="xy", type="l", main="seems too precise...")
-legend("bottomleft",c("one lowres run"), col=c("blue"), lty=1)
-
-plot(pk2[,c(1,3)], col="blue", log="xy", type="l", main="seems too precise...")
-lines(pk2[,c(1,3)] - cbind(0, 2*1/sqrt(prec_lowres)))
-lines(pk2[,c(1,3)] + cbind(0, 2*1/sqrt(prec_lowres)))
+plot(log(pk2[,c(1,3)])/log(10), col="blue", type="l", main="all low res, one CI (log10)")
+for (j in 3:18) {lines(log10(pk2[,c(1,j)]), col="blue")}
+lines(log10(pk2[,c(1,3)]) - cbind(0, 2*1/sqrt(prec_lowres)))
+lines(log10(pk2[,c(1,3)]) + cbind(0, 2*1/sqrt(prec_lowres)))
 legend("bottomleft",c("one lowres run", "LB/UB"), col=c("blue","black"), lty=1)
+abline(v=log10(0.04)); abline(v=log10(0.25))
+
+# only lowres index data
+plot(log10(pk2[index_list$lowres.ix,c(1,3)]), col="blue", type="l", main="all low res, one CI (log10)")
+for (j in 3:18) {lines(log10(pk2[,c(1,j)]), col="blue")}
+lines(log10(pk2[,c(1,3)]) - cbind(0, 2*1/sqrt(prec_lowres)), col="red", lty=2)
+lines(log10(pk2[,c(1,3)]) + cbind(0, 2*1/sqrt(prec_lowres)), col="red", lty=2)
+abline(v=log10(0.04)); abline(v=log10(0.25))
+legend("bottomleft",c("one lowres run", "LB/UB"), col=c("blue","red"), lty=c(1,2))
+
 
 # all of the nonzero data for low res
-plot(pk2[pk2[,j]!=0,c(1,j)], col="blue", log="xy", type="l", main = "within vs between-run variation")
-lines(pk2[pk2[,j]!=0,c(1,3)] - cbind(0, 2*sqrt(1/prec_lowres[pk2[,j]!=0])))
-lines(pk2[pk2[,j]!=0,c(1,3)] + cbind(0, 2*sqrt(1/prec_lowres[pk2[,j]!=0])))
+plot(log10(pk2[index_list$lowres.ix,c(1,j)]), col="blue", type="l", main = "compare 95% CI w another run")
+lines(log10(pk2[index_list$lowres.ix,c(1,3)]), col="blue")
+lines(log10(pk2[index_list$lowres.ix,c(1,3)]) - cbind(0, 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
+lines(log10(pk2[index_list$lowres.ix,c(1,3)]) + cbind(0, 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
 
 
 # the low res 
-plot(pk2[index_list$lowres.ix,c(1,3)], col="blue", log="xy", type="l", 
-     ylim = range(c(pk2[index_list$lowres.ix,c(3)] + 3*sqrt(1/prec_lowres[index_list$lowres.ix]),
-                    pk2[index_list$lowres.ix,c(3)] - 3*sqrt(1/prec_lowres[index_list$lowres.ix]))),
+plot(log10(pk2[index_list$lowres.ix,c(1,3)]), col="blue", type="l", 
+     ylim = log10(range(c(pk2[index_list$lowres.ix,c(3)] + 3*sqrt(1/prec_lowres[index_list$lowres.ix]),
+                    pk2[index_list$lowres.ix,c(3)] - 3*sqrt(1/prec_lowres[index_list$lowres.ix])))),
      main = "all 18 low res, one set of 95% CIs from prec")
-for(j in 3:18) lines(pk2[index_list$lowres.ix,c(1,j)], col="blue")
-lines(cbind(pk2[index_list$lowres.ix,1],
-            pk2[index_list$lowres.ix,j] - 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
-lines(cbind(pk2[index_list$lowres.ix,1],
-            pk2[index_list$lowres.ix,j] + 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
+for(j in 3:18) lines(log10(pk2[index_list$lowres.ix,c(1,j)]), col="blue")
+lines(cbind(log10(pk2[index_list$lowres.ix,1]),
+            log10(pk2[index_list$lowres.ix,j]) - 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
+lines(cbind(log10(pk2[index_list$lowres.ix,1]),
+            log10(pk2[index_list$lowres.ix,j]) + 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
 legend("bottomleft", c("lowres","CIs"), col=c("blue","black"), lty=1)
 
-plot(pk2[index_list$lowres.ix,c(1,j)], col="blue", type="l", main = "orig scale, only chg P(k)")
+plot(pk2[index_list$lowres.ix,c(1,j)], col="blue", type="l", main = "orig scale, one set of CIs")
 for (j in 3:18) lines(pk2[index_list$lowres.ix,c(1,j)], col="blue")
-lines(pk2[index_list$lowres.ix,c(1,j)] + cbind(0, 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
-lines(pk2[index_list$lowres.ix,c(1,j)] - cbind(0, 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
+lines(pk2[index_list$lowres.ix,1],
+      10^(log10(pk2[index_list$lowres.ix,j]) + 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
+lines(pk2[index_list$lowres.ix,1],
+      10^(log10(pk2[index_list$lowres.ix,j]) - 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
 
-plot(pk2[index_list$lowres.ix,c(1,j)], col="blue", type="l", log="xy", main = "log scale, only chg P(k)")
-for (j in 3:18) lines(pk2[index_list$lowres.ix,c(1,j)], col="blue")
-lines(pk2[index_list$lowres.ix,c(1,j)] + cbind(0, 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
-lines(pk2[index_list$lowres.ix,c(1,j)] - cbind(0, 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
-
-plot(pk2[index_list$lowres.ix,c(1,j)], col="blue", type="l",  main = "orig, only chg k & P(k) WRONG")
-for (j in 3:18) lines(pk2[index_list$lowres.ix,c(1,j)], col="blue")
-lines(pk2[index_list$lowres.ix,c(1,j)] + 2*sqrt(1/prec_lowres[index_list$lowres.ix]))
-lines(pk2[index_list$lowres.ix,c(1,j)] - 2*sqrt(1/prec_lowres[index_list$lowres.ix]))
-
-plot(pk2[index_list$lowres.ix,c(1,j)], col="blue", type="l", log="xy",  main = "log, chg k & P(k) WRONG")
-for (j in 3:18) lines(pk2[index_list$lowres.ix,c(1,j)], col="blue")
-lines(pk2[index_list$lowres.ix,c(1,j)] + 2*sqrt(1/prec_lowres[index_list$lowres.ix]))
-lines(pk2[index_list$lowres.ix,c(1,j)] - 2*sqrt(1/prec_lowres[index_list$lowres.ix]))
-
+plot(log10(pk2[index_list$lowres.ix,c(1,j)]), col="blue", type="l", main = "all 18 low res, all CIs on top")
+for (j in 3:18) lines(log10(pk2[index_list$lowres.ix,c(1,j)]), col="blue")
+for (j in 3:18) lines(log10(pk2[index_list$lowres.ix,c(1,j)]) + cbind(0, 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
+for (j in 3:18) lines(log10(pk2[index_list$lowres.ix,c(1,j)]) - cbind(0, 2*sqrt(1/prec_lowres[index_list$lowres.ix])))
+legend("bottomleft", c("lowres","CIs"), col=c("blue","black"), lty=1)
 dev.off()
 
 # Boxplots
