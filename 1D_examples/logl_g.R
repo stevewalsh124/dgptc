@@ -507,10 +507,40 @@ all.equal(fit$theta_w, fit3$theta_w)
 all.equal(fit$tau2, fit3$tau2)
 for(i in 1:nrow(as.matrix(x))) if(!all.equal(fit$g, fit3$g[,i])) stop("g's not equal :(")
 
+#######################
+# run for actual data #
+#######################
 
-#######
-# fit4 <- fit_two_layer_SW(x, y_avg, nmcmc = 51000, true_g = vars*sigma2_y/16)
-# fit5 <- fit_two_layer_SW(x, 3*y_avg, nmcmc = 51000, true_g = vars*sigma2_y/16)
-# fit6 <- fit_two_layer_SW(x, y_avg/3, nmcmc = 51000, true_g = vars*sigma2_y/16)
-# c(mean(fit4$theta_y), mean(fit5$theta_y), mean(fit6$theta_y))
+fit4 <- fit_two_layer_SW(x, y_avg, nmcmc = 31000, true_g = vars*sigma2_y/16)
+fit4 <- trim_SW(fit4, 1000)
+save(fit4, file = "rda/g_vector/fit4.rda")
+
+fit5 <- fit_two_layer_SW(x, 3*y_avg, nmcmc = 31000, true_g = vars*sigma2_y/16)
+fit5 <- trim_SW(fit5, 1000)
+save(fit5, file = "rda/g_vector/fit5.rda")
+
+fit6 <- fit_two_layer_SW(x, y_avg/3, nmcmc = 31000, true_g = vars*sigma2_y/16)
+fit6 <- trim_SW(fit6, 1000)
+save(fit6, file = "rda/g_vector/fit6.rda")
+
+fit4v <- fit_two_layer_SW(x, y_avg, nmcmc = 31000, true_g = vars*sigma2_y/16, vecchia = T)
+fit4v <- trim_SW(fit4v, 1000)
+save(fit4v, file = "rda/g_vector/fit4v.rda")
+
+fit5v <- fit_two_layer_SW(x, 3*y_avg, nmcmc = 31000, true_g = vars*sigma2_y/16, vecchia = T)
+fit5v <- trim_SW(fit5v, 1000)
+save(fit5v, file = "rda/g_vector/fit5v.rda")
+
+fit6v <- fit_two_layer_SW(x, y_avg/3, nmcmc = 31000, true_g = vars*sigma2_y/16, vecchia = T)
+fit6v <- trim_SW(fit6v, 1000)
+save(fit6v, file = "rda/g_vector/fit6v.rda")
+
+c(mean(fit4$theta_y), mean(fit5$theta_y), mean(fit6$theta_y),
+  mean(fit4v$theta_y), mean(fit5v$theta_y), mean(fit6v$theta_y))
+c(mean(fit4$theta_w), mean(fit5$theta_w), mean(fit6$theta_w),
+  mean(fit4v$theta_w), mean(fit5v$theta_w), mean(fit6v$theta_w))
+c(mean(fit4$tau2), mean(fit5$tau2), mean(fit6$tau2),
+  mean(fit4v$tau2), mean(fit5v$tau2), mean(fit6v$tau2))
+c(mean(fit4$time), mean(fit5$time), mean(fit6$time),
+  mean(fit4v$time), mean(fit5v$time), mean(fit6v$time))
 
