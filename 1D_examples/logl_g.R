@@ -1,6 +1,9 @@
 # modify package functions to allow true_g to be a vector
 
 library(deepgp)
+library(Rcpp)
+
+sourceCpp("src/cov_SW.cpp")
 
 bte <- 3 # cols 3-18 are low res
 
@@ -44,11 +47,12 @@ MaternFun <- deepgp:::MaternFun
 Exp2Fun <- deepgp:::Exp2Fun
 invdet <- deepgp:::invdet
 sample_theta <- deepgp:::sample_theta
+sample_theta_vec <- deepgp:::sample_theta_vec
 eps <- sqrt(.Machine$double.eps)
 create_approx <- deepgp:::create_approx
+rand_mvn_vec <- deepgp:::rand_mvn_vec
+update_obs_in_approx <- deepgp:::update_obs_in_approx
 
-# need to modify the C code
-U_entries_SW <- deepgp:::U_entries
 
 fit_two_layer_SW <- function (x, y, D = ifelse(is.matrix(x), ncol(x), 1), nmcmc = 10000, 
           verb = TRUE, w_0 = NULL, g_0 = 0.01, theta_y_0 = 0.1, theta_w_0 = 0.1, 
@@ -88,7 +92,7 @@ fit_two_layer_SW <- function (x, y, D = ifelse(is.matrix(x), ncol(x), 1), nmcmc 
     } else {
       if(length(true_g)==nrow(x)){
         samples <- gibbs_two_layer_vec_SW(x, y, nmcmc, D, verb, initial, 
-                                      true_g, settings, cov, v)
+                                      true_g, settings, v, m)
       } else {print(stop("length of true_g must be 1 or length/nrow of x"))}
     }
   } else {
@@ -111,6 +115,7 @@ fit_two_layer_SW <- function (x, y, D = ifelse(is.matrix(x), ncol(x), 1), nmcmc 
   else class(out) <- "dgp2"
   return(out)
 }
+
 
 # use this version when g is a vector
 gibbs_two_layer_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings, cov, v){
@@ -261,12 +266,14 @@ logl_SW <- function (out_vec, in_dmat, g, theta, outer = TRUE, v, cov, tau2 = FA
     return(list(logl = c(logl), tau2 = tau2))
 }
 
+
 #########################################
 # Vecchia approx function modifications #
 #########################################
 
 gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings, v, 
           m, x_approx = NULL, w_approx = NULL) {
+  print("using SW")
   if (is.null(x_approx)) 
     x_approx <- create_approx(x, m)
   if (is.null(w_approx)) 
@@ -301,7 +308,7 @@ gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, setti
     else {
       if(length(true_g)==1) {g[j] <- true_g} else {g[j,] <- true_g}
     }
-    samp <- sample_theta_vec_SW(y, g[j], theta_y[j - 1], alpha = settings$alpha$theta_y, 
+    samp <- sample_theta_vec_SW(y, g[j,], theta_y[j - 1], alpha = settings$alpha$theta_y, 
                              beta = settings$beta$theta_y, l = settings$l, u = settings$u, 
                              outer = TRUE, ll_prev = ll_outer, approx = w_approx, 
                              v = v, tau2 = TRUE)
@@ -318,7 +325,7 @@ gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, setti
                                v = v)
       theta_w[j, i] <- samp$theta
     }
-    samp <- sample_w_vec_SW(y, w_approx, x_approx, g[j], theta_y[j], 
+    samp <- sample_w_vec_SW(y, w_approx, x_approx, g[j,], theta_y[j], 
                          theta_w[j, ], ll_prev = ll_outer, v = v, prior_mean = settings$w_prior_mean)
     w_approx <- samp$w_approx
     w[[j]] <- w_approx$x_ord[w_approx$rev_ord_obs, , drop = FALSE]
@@ -330,6 +337,7 @@ gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, setti
 
 sample_theta_vec_SW <- function (y, g, theta_t, alpha, beta, l, u, outer, ll_prev = NULL, 
           approx, v, tau2 = FALSE) {
+
   theta_star <- runif(1, min = l * theta_t/u, max = u * theta_t/l)
   ru <- runif(1, min = 0, max = 1)
   if (is.null(ll_prev)) 
@@ -348,6 +356,7 @@ sample_theta_vec_SW <- function (y, g, theta_t, alpha, beta, l, u, outer, ll_pre
 
 sample_w_vec_SW <- function (y, w_approx, x_approx, g, theta_y, theta_w, ll_prev = NULL, 
           v, prior_mean) {
+
   D <- ncol(w_approx$x_ord)
   if (is.null(ll_prev)) 
     ll_prev <- logl_vec_SW(y, w_approx, g, theta_y, outer = TRUE, v)$logl
@@ -410,10 +419,10 @@ logl_vec_SW <- function (out_vec, approx, g, theta, outer = TRUE, v, tau2 = FALS
 
 create_U_SW <- function (approx, g, theta, v) {
   n <- nrow(approx$x_ord)
-  U <- U_entries_SW(approx$n_cores, n, approx$x_ord, approx$revNN, 
-                 approx$revCond, c(1, theta, g, v))
+  U <- U_entries_SW(approx$n_cores, n, approx$x_ord, approx$revNN,
+                 approx$revCond, c(1, theta, 0, v), g)
   U <- c(t(U))[approx$notNA]
-  U_mat <- Matrix::sparseMatrix(i = approx$col_indices, j = approx$row_pointers, 
+  U_mat <- Matrix::sparseMatrix(i = approx$col_indices, j = approx$row_pointers,
                                 x = U, dims = c(n, n))
   return(U_mat)
 }
@@ -484,6 +493,8 @@ fit <- fit_two_layer(x, y, nmcmc = 100, true_g = 1e-4, vecchia = T)
 set.seed(1)
 fit2 <- fit_two_layer_SW(x, y, nmcmc = 100, true_g = 1e-4, vecchia = T) #doesn't actually use SW version (scalar)
 set.seed(1)
+#  Error in U_entries_SW(approx$n_cores, n, approx$x_ord, approx$revNN, approx$revCond,  : 
+#  Not compatible with requested type: [type=character; target=double]. 
 fit3 <- fit_two_layer_SW(x, y, nmcmc = 100, true_g = rep(1e-4, nrow(as.matrix(x))), vecchia = T)
 
 all.equal(fit$theta_y, fit2$theta_y)
@@ -497,23 +508,9 @@ all.equal(fit$tau2, fit3$tau2)
 for(i in 1:nrow(as.matrix(x))) if(!all.equal(fit$g, fit3$g[,i])) stop("g's not equal :(")
 
 
-#######################
-# run for actual data #
-#######################
-
-fit4 <- fit_two_layer_SW(x, y_avg, nmcmc = 51000, true_g = vars*sigma2_y/16)
-fit4 <- trim_SW(fit4, 1000)
-save(fit4, file = "rda/g_vector/fit4.rda")
-
-fit5 <- fit_two_layer_SW(x, 3*y_avg, nmcmc = 51000, true_g = vars*sigma2_y/16)
-fit5 <- trim_SW(fit5, 1000)
-save(fit5, file = "rda/g_vector/fit5.rda")
-
-fit6 <- fit_two_layer_SW(x, y_avg/3, nmcmc = 51000, true_g = vars*sigma2_y/16)
-fit6 <- trim_SW(fit6, 1000)
-save(fit6, file = "rda/g_vector/fit6.rda")
-
-c(mean(fit4$theta_y), mean(fit5$theta_y), mean(fit6$theta_y))
-c(mean(fit4$theta_w), mean(fit5$theta_w), mean(fit6$theta_w))
-c(mean(fit4$tau2), mean(fit5$tau2), mean(fit6$tau2))
+#######
+# fit4 <- fit_two_layer_SW(x, y_avg, nmcmc = 51000, true_g = vars*sigma2_y/16)
+# fit5 <- fit_two_layer_SW(x, 3*y_avg, nmcmc = 51000, true_g = vars*sigma2_y/16)
+# fit6 <- fit_two_layer_SW(x, y_avg/3, nmcmc = 51000, true_g = vars*sigma2_y/16)
+# c(mean(fit4$theta_y), mean(fit5$theta_y), mean(fit6$theta_y))
 
