@@ -5,34 +5,6 @@ library(Rcpp)
 
 sourceCpp("src/cov_SW.cpp")
 
-bte <- 3 # cols 3-18 are low res
-
-args <- commandArgs(TRUE)
-if(length(args) > 0)
-  for(i in 1:length(args))
-    eval(parse(text=args[[i]]))
-
-step <- 499
-i <- 1 # Model 1, choose from 000-111
-pk2 <- read.table(paste0("Mira-Titan-IV-data/Mira-Titan-2021/STEP",step,"/pk_M",
-                         if(i<100){"0"},if(i<10){"0"},i,"_test.dat"))
-
-# load the precision data (k, prec_highres, prec_lowres, index_list)
-load("Mira-Titan-IV-data/precision_and_indexes.Rdata")
-vars <- 1/prec_lowres[index_list$lowres.ix]
-
-# wavenumber is X, a particular lowres run in Y
-x <- log10(k[index_list$lowres.ix])
-y <- log10(pk2[index_list$lowres.ix, bte])
-y_avg <- rowMeans(log10(pk2[index_list$lowres.ix, 3:18]))
-
-# save var(y_avg) to adjust prec values in the final fit call
-sigma2_y <- var(y_avg)
-
-x <- (x - min(x))/(max(x)-min(x))
-y <- (y - mean(y))/sd(y)
-y_avg <- (y_avg - mean(y_avg))/sd(y_avg)
-
 ##########################################
 # Full likelihood function modifications #
 ##########################################
@@ -138,7 +110,7 @@ gibbs_two_layer_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings,
   ll_outer <- NULL
   for (j in 2:nmcmc) {
     if (verb) 
-      if (j%%500 == 0) 
+      if (j%%5000 == 0) 
         cat(j, "\n")
     if (is.null(true_g)) {
       samp <- sample_g(y, dw, g[j - 1], theta_y[j - 1], 
@@ -459,88 +431,4 @@ trim_SW <- function(object, burn, thin = 1) {
   
   return(object)
 }
-
-
-################################
-# Check equality for full lkhd #
-################################
-
-# try it out
-# check to make sure results are the same for scalar g
-set.seed(1)
-fit <- fit_two_layer(x, y, nmcmc = 100, true_g = 1e-4)
-set.seed(1)
-fit2 <- fit_two_layer_SW(x, y, nmcmc = 100, true_g = 1e-4) #doesn't actually use SW version (scalar)
-set.seed(1)
-fit3 <- fit_two_layer_SW(x, y, nmcmc = 100, true_g = rep(1e-4, nrow(as.matrix(x))))
-
-all.equal(fit$theta_y, fit2$theta_y)
-all.equal(fit$theta_w, fit2$theta_w)
-all.equal(fit$tau2, fit2$tau2)
-all.equal(fit$g, fit2$g)
-
-all.equal(fit$theta_y, fit3$theta_y)
-all.equal(fit$theta_w, fit3$theta_w)
-all.equal(fit$tau2, fit3$tau2)
-for(i in 1:nrow(as.matrix(x))) if(!all.equal(fit$g, fit3$g[,i])) stop("g's not equal :(")
-
-########################
-# Check Vecchia approx #
-########################
-
-set.seed(1)
-fit <- fit_two_layer(x, y, nmcmc = 100, true_g = 1e-4, vecchia = T)
-set.seed(1)
-fit2 <- fit_two_layer_SW(x, y, nmcmc = 100, true_g = 1e-4, vecchia = T) #doesn't actually use SW version (scalar)
-set.seed(1)
-#  Error in U_entries_SW(approx$n_cores, n, approx$x_ord, approx$revNN, approx$revCond,  : 
-#  Not compatible with requested type: [type=character; target=double]. 
-fit3 <- fit_two_layer_SW(x, y, nmcmc = 100, true_g = rep(1e-4, nrow(as.matrix(x))), vecchia = T)
-
-all.equal(fit$theta_y, fit2$theta_y)
-all.equal(fit$theta_w, fit2$theta_w)
-all.equal(fit$tau2, fit2$tau2)
-all.equal(fit$g, fit2$g)
-
-all.equal(fit$theta_y, fit3$theta_y)
-all.equal(fit$theta_w, fit3$theta_w)
-all.equal(fit$tau2, fit3$tau2)
-for(i in 1:nrow(as.matrix(x))) if(!all.equal(fit$g, fit3$g[,i])) stop("g's not equal :(")
-
-#######################
-# run for actual data #
-#######################
-
-fit4 <- fit_two_layer_SW(x, y_avg, nmcmc = 31000, true_g = vars*sigma2_y/16)
-fit4 <- trim_SW(fit4, 1000)
-save(fit4, file = "rda/g_vector/fit4.rda")
-
-fit5 <- fit_two_layer_SW(x, 3*y_avg, nmcmc = 31000, true_g = vars*sigma2_y/16)
-fit5 <- trim_SW(fit5, 1000)
-save(fit5, file = "rda/g_vector/fit5.rda")
-
-fit6 <- fit_two_layer_SW(x, y_avg/3, nmcmc = 31000, true_g = vars*sigma2_y/16)
-fit6 <- trim_SW(fit6, 1000)
-save(fit6, file = "rda/g_vector/fit6.rda")
-
-fit4v <- fit_two_layer_SW(x, y_avg, nmcmc = 31000, true_g = vars*sigma2_y/16, vecchia = T)
-fit4v <- trim_SW(fit4v, 1000)
-save(fit4v, file = "rda/g_vector/fit4v.rda")
-
-fit5v <- fit_two_layer_SW(x, 3*y_avg, nmcmc = 31000, true_g = vars*sigma2_y/16, vecchia = T)
-fit5v <- trim_SW(fit5v, 1000)
-save(fit5v, file = "rda/g_vector/fit5v.rda")
-
-fit6v <- fit_two_layer_SW(x, y_avg/3, nmcmc = 31000, true_g = vars*sigma2_y/16, vecchia = T)
-fit6v <- trim_SW(fit6v, 1000)
-save(fit6v, file = "rda/g_vector/fit6v.rda")
-
-c(mean(fit4$theta_y), mean(fit5$theta_y), mean(fit6$theta_y),
-  mean(fit4v$theta_y), mean(fit5v$theta_y), mean(fit6v$theta_y))
-c(mean(fit4$theta_w), mean(fit5$theta_w), mean(fit6$theta_w),
-  mean(fit4v$theta_w), mean(fit5v$theta_w), mean(fit6v$theta_w))
-c(mean(fit4$tau2), mean(fit5$tau2), mean(fit6$tau2),
-  mean(fit4v$tau2), mean(fit5v$tau2), mean(fit6v$tau2))
-c(mean(fit4$time), mean(fit5$time), mean(fit6$time),
-  mean(fit4v$time), mean(fit5v$time), mean(fit6v$time))
 
