@@ -133,7 +133,8 @@ arma::mat U_entries_SW(const int Ncores, const arma::uword n, const arma::mat& l
       arma::uvec inds00 = inds.elem(find(inds)) - 1;
       uword n0 = inds00.n_elem;
       arma::mat dist = calc_sqdist(locs.rows(inds00));
-      arma::mat covmat = MaternFun_SW(dist, covparms, g);
+      arma::vec gsub = g.elem(inds00) % (ones(n0)-revCon_row(span(m+1-n0,m)));
+      arma::mat covmat = MaternFun_SW(dist, covparms, gsub);
       arma::vec onevec = zeros(n0);
       onevec[n0 - 1] = 1;
       arma::vec M = solve(chol(covmat, "upper"), onevec);
@@ -148,7 +149,8 @@ arma::mat U_entries_SW(const int Ncores, const arma::uword n, const arma::mat& l
       arma::uvec inds00 = inds.elem(find(inds)) - 1;
       uword n0 = inds00.n_elem;
       arma::mat dist = calc_sqdist(locs.rows(inds00));
-      arma::mat covmat = MaternFun_SW(dist, covparms, g);
+      arma::vec gsub = g.elem(inds00) % (ones(n0)-revCon_row(span(m+1-n0,m)));
+      arma::mat covmat = MaternFun_SW(dist, covparms, gsub);
       arma::vec onevec = zeros(n0);
       onevec[n0 - 1] = 1;
       arma::vec M = solve(chol(covmat, "upper"), onevec);
