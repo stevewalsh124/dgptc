@@ -1,7 +1,7 @@
 # modify package functions to allow true_g to be a vector
 
-library(deepgp, lib.loc = "~/R/gcc/3.6/")
-library(Rcpp, lib.loc = "~/R/gcc/3.6/")
+library(deepgp)
+library(Rcpp)
 
 sourceCpp("src/cov_SW.cpp")
 
@@ -276,8 +276,7 @@ gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, setti
                            approx = w_approx, v = v)
       g[j] <- samp$g
       ll_outer <- samp$ll
-    }
-    else {
+    } else {
       if(length(true_g)==1) {g[j] <- true_g} else {g[j,] <- true_g}
     }
     samp <- sample_theta_vec_SW(y, g[j,], theta_y[j - 1], alpha = settings$alpha$theta_y, 
@@ -286,9 +285,7 @@ gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, setti
                              v = v, tau2 = TRUE)
     theta_y[j] <- samp$theta
     ll_outer <- samp$ll
-    if (is.null(samp$tau2)) 
-      tau2[j] <- tau2[j - 1]
-    else tau2[j] <- samp$tau2
+    if (is.null(samp$tau2)) tau2[j] <- tau2[j - 1] else tau2[j] <- samp$tau2
     for (i in 1:D) {
       samp <- sample_theta_vec(w[[j - 1]][, i], g = eps, 
                                theta_w[j - 1, i], alpha = settings$alpha$theta_w, 
