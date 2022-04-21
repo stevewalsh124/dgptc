@@ -45,7 +45,7 @@ fit_two_layer_SW <- function (x, y, D = ifelse(is.matrix(x), ncol(x), 1), nmcmc 
   initial <- list(w = w_0, theta_y = theta_y_0, theta_w = theta_w_0, 
                   g = g_0, tau2 = 1)
   initial <- check_initialization(initial, layers = 2, x = x, 
-                                  D = D, vecchia = vecchia, cov = cov, v = v, m = m)
+                                  D = D, vecchia = vecchia, v = v, m = m)
   if (m >= length(y)) 
     stop("m must be less than the length of y")
   if (cov == "matern") 
@@ -136,7 +136,7 @@ gibbs_two_layer_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings,
       samp <- sample_theta(w[[j - 1]][, i], dx, g = eps, 
                            theta_w[j - 1, i], alpha = settings$alpha$theta_w, 
                            beta = settings$beta$theta_w, l = settings$l, 
-                           u = settings$u, outer = FALSE, v = v, cov = cov)
+                           u = settings$u, outer = FALSE, v = v)
       theta_w[j, i] <- samp$theta
     }
     samp <- sample_w_SW(y, w[[j - 1]], dw, dx, g[j,], theta_y[j], 
