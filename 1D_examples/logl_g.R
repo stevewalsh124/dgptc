@@ -1,7 +1,7 @@
 # modify package functions to allow true_g to be a vector
 
-library(deepgp)
-library(Rcpp)
+library(deepgp, lib.loc = "~/R/gcc/3.6/")
+library(Rcpp, lib.loc = "~/R/gcc/3.6/")
 
 sourceCpp("src/cov_SW.cpp")
 
