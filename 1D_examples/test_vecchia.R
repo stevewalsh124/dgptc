@@ -29,6 +29,7 @@ x <- (x - min(x))/(max(x)-min(x))
 y <- (y - mean(y))/sd(y)
 y_avg <- (y_avg - mean(y_avg))/sd(y_avg)
 y_hi <- (y_hi - mean(y_hi))/sd(y_hi)
+
 #######################
 # run for actual data #
 #######################
@@ -39,16 +40,20 @@ y_hi <- (y_hi - mean(y_hi))/sd(y_hi)
 # fit <- fit_two_layer(x, y_avg, cov = "exp2", nmcmc = 50000, vecchia = T)
 # save(fit,file=paste0("rda/fit4_avg_pm0_log10_vecc.rda"))
 
-fit4 <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 500, true_g = vars/(sigma2_y*16), cov = "matern", v=2.5)
-# fit4 <- trim_SW(fit4, 1000)
+xx <- setdiff(seq(0,1,.001), x)
+fit4 <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 50000, true_g = vars/(sigma2_y*16), cov = "matern", v=2.5)
+fit4 <- trim_SW(fit4, 100, 2)
+fit4 <- predict(fit4, xx)
 save(fit4, file = "rda/g_vector/test/fit4.rda")
 
-fit4v <- fit_two_layer_SW(x, y_avg, nmcmc = 500, true_g = vars/(sigma2_y*16), vecchia = T)
-# fit4v <- trim_SW(fit4v, 1000)
+fit4v <- fit_two_layer_SW(x, y_avg, nmcmc = 50000, true_g = vars/(sigma2_y*16), vecchia = T)
+fit4v <- trim_SW(fit4v, 100, 2)
+fit4v <- predict(fit4v, xx)
 save(fit4v, file = "rda/g_vector/test/fit4v.rda")
 
-fit4ve <- fit_two_layer(x, y_avg, nmcmc = 500, true_g = vars/(sigma2_y*16), vecchia = T)
-# fit4ve <- trim_SW(fit4ve, 1000)
+fit4ve <- fit_two_layer(x, y_avg, nmcmc = 50000, true_g = vars/(sigma2_y*16), vecchia = T)
+fit4ve <- trim_SW(fit4ve, 100, 2)
+fit4ve <- predict(fit4ve, xx)
 save(fit4ve, file = "rda/g_vector/test/fit4vecchia_nonSW.rda")
 
 fit4$time
