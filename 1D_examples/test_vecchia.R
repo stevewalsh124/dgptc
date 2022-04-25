@@ -23,12 +23,14 @@ y_avg <- rowMeans(log10(pk2[index_list$lowres.ix, 3:18]))
 y_hi <- log10(pk2[index_list$lowres.ix, 19])
 
 # save var(y_avg) to adjust prec values in the final fit call
-sigma2_y <- var(y_avg)
+sigma2_y <- var(y)
+sigma2_yavg <- var(y_avg)
 
 x <- (x - min(x))/(max(x)-min(x))
 y <- (y - mean(y))/sd(y)
 y_avg <- (y_avg - mean(y_avg))/sd(y_avg)
 y_hi <- (y_hi - mean(y_hi))/sd(y_hi)
+
 #######################
 # run for actual data #
 #######################
@@ -39,15 +41,15 @@ y_hi <- (y_hi - mean(y_hi))/sd(y_hi)
 # fit <- fit_two_layer(x, y_avg, cov = "exp2", nmcmc = 50000, vecchia = T)
 # save(fit,file=paste0("rda/fit4_avg_pm0_log10_vecc.rda"))
 
-fit4 <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 500, true_g = vars/(sigma2_y*16), cov = "matern", v=2.5)
+fit4 <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 10000, true_g = vars/(sigma2_yavg*16), cov = "matern", v=2.5)
 # fit4 <- trim_SW(fit4, 1000)
 save(fit4, file = "rda/g_vector/test/fit4.rda")
 
-fit4v <- fit_two_layer_SW(x, y_avg, nmcmc = 500, true_g = vars/(sigma2_y*16), vecchia = T)
+fit4v <- fit_two_layer_SW(x, y_avg, nmcmc = 10000, true_g = vars/(sigma2_yavg*16), vecchia = T)
 # fit4v <- trim_SW(fit4v, 1000)
 save(fit4v, file = "rda/g_vector/test/fit4v.rda")
 
-fit4ve <- fit_two_layer(x, y_avg, nmcmc = 500, true_g = vars/(sigma2_y*16), vecchia = T)
+fit4ve <- fit_two_layer(x, y_avg, nmcmc = 10000, true_g = vars/(sigma2_yavg*16), vecchia = T)
 # fit4ve <- trim_SW(fit4ve, 1000)
 save(fit4ve, file = "rda/g_vector/test/fit4vecchia_nonSW.rda")
 
