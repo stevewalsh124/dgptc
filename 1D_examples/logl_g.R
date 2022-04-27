@@ -601,9 +601,9 @@ krig_SW <- function (y, dx, d_new = NULL, d_cross = NULL, theta, g, tau2 = 1,
   if (sigma) {
     quadterm <- C_cross %*% C_inv %*% t(C_cross)
     if (v == 999) {
-      C_new <- Exp2Fun(d_new, c(1, theta, 0)) + diag(g/precs)
+      C_new <- Exp2Fun(d_new, c(1, theta, eps)) # + diag(g/pred_precs) # use this for Y(X), not E(Y(X))
     }
-    else C_new <- MaternFun(d_new, c(1, theta, 0, v)) + diag(g/precs)
+    else C_new <- MaternFun(d_new, c(1, theta, 0, v)) # + diag(g/pred_precs)
     out$sigma <- tau2 * (C_new - quadterm)
   }
   return(out)
@@ -637,6 +637,7 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
   if (cores > detectCores()) 
     warning("cores is greater than available nodes")
   cl <- makeCluster(cores)
+  clusterExport(cl, c("krig_vec_SW", "MaternFun", "eps", "invdet", "sq_dist", "create_U_SW", "MaternFun_SW"))
   registerDoParallel(cl)
   thread <- NULL
   result <- foreach(thread = 1:cores) %dopar% {
@@ -653,8 +654,8 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
       w_t <- object$w[[t]]
       w_new <- matrix(nrow = n_new, ncol = D)
       for (i in 1:D) {
-        k <- krig_vec(w_t[, i], object$theta_w[t, i], 
-                      g = eps, tau2 = 1, v = object$v, m = m, x = object$x, 
+        k <- krig_vec_SW(w_t[, i], object$theta_w[t, i], 
+                      g = eps, tau2 = 1, v = object$v, precs = object$precs, m = m, x = object$x, 
                       x_new = x_new, NNarray_pred = NN_x_new)
         w_new[, i] <- k$mean
       }
@@ -667,8 +668,8 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
         w_approx <- update_obs_in_approx(object$w_approx, w_t)
         w_approx <- add_pred_to_approx(w_approx, w_new, m)
       }
-      k <- krig_vec(object$y, object$theta_y[t], object$g[t], 
-                    object$tau2[t], s2 = lite, sigma = !lite, v = object$v, 
+      k <- krig_vec_SW(object$y, object$theta_y[t], object$g[t], 
+                    object$tau2[t], s2 = lite, sigma = !lite, v = object$v, precs = object$precs,
                     m = m, x = w_t, x_new = w_new, approx = w_approx)
       out$mu_t[, j] <- k$mean
       if (lite) {
@@ -705,4 +706,43 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
   toc <- proc.time()[3]
   object$time <- object$time + (toc - tic)
   return(object)
+}
+
+krig_vec_SW <- function (y, theta, g, tau2 = 1, s2 = FALSE, sigma = FALSE, v, precs,
+                         m = NULL, x = NULL, x_new = NULL, NNarray_pred = NULL, approx = NULL){
+  out <- list()
+  if (!sigma) {
+    n_new <- nrow(x_new)
+    if (is.null(NNarray_pred)) 
+      NNarray_pred <- FNN::get.knnx(x, x_new, m)$nn.index
+    out$mean <- vector(length = n_new)
+    if (s2) 
+      out$s2 <- vector(length = n_new)
+    for (i in 1:n_new) {
+      NN <- NNarray_pred[i, ]
+      x_combined <- rbind(x[NN, , drop = FALSE], x_new[i, 
+                                                       , drop = FALSE])
+      K <- MaternFun(sq_dist(x_combined), c(1, theta, g, v)) # + diag(c(g/precs, g)); (g to 0 in MF) Need to get precsubset, and pred prec
+      L <- t(chol(K))
+      out$mean[i] <- L[m + 1, 1:m] %*% forwardsolve(L[1:m, 1:m], y[NN])
+      if (s2) 
+        out$s2[i] <- tau2 * (L[m + 1, m + 1]^2)
+    }
+  }
+  else {
+    if (is.null(approx$observed)) 
+      approx <- add_pred_to_approx(approx, x_new, m)
+    yo <- y[approx$ord[approx$observed]]
+    U_mat <- create_U(approx, g, theta, v, precs)
+    Upp <- U_mat[!approx$observed, !approx$observed]
+    Uppinv <- Matrix::solve(Upp, sparse = TRUE)
+    Winv <- Matrix::crossprod(Uppinv)
+    Uop <- U_mat[approx$observed, !approx$observed]
+    UopTy <- Matrix::crossprod(Uop, yo)
+    mu_ordered <- -Matrix::crossprod(Uppinv, UopTy)
+    out$mean <- mu_ordered[approx$rev_ord_pred]
+    out$sigma <- as.matrix(tau2 * Winv[approx$rev_ord_pred, 
+                                       approx$rev_ord_pred])
+  }
+  return(out)
 }
