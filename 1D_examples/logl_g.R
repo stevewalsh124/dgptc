@@ -2,6 +2,7 @@
 
 library(deepgp)
 library(Rcpp)
+library(parallel)
 
 sourceCpp("src/cov_SW.cpp")
 
@@ -468,7 +469,7 @@ trim_SW <- function(object, burn, thin = 1) {
 clean_prediction <- deepgp:::clean_prediction
 
 predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, mean_map = TRUE, 
-                             EI = FALSE, cores = parallel::detectCores() - 1, ...){
+                             EI = FALSE, cores = detectCores() - 1, ...){
   tic <- proc.time()[3]
   object <- clean_prediction(object)
   if (is.numeric(x_new)) 
@@ -484,7 +485,7 @@ predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, m
     chunks <- list(iters)
   }
   else chunks <- split(iters, sort(cut(iters, cores, labels = FALSE)))
-  if (cores > parallel::detectCores()) 
+  if (cores > detectCores()) 
     warning("cores is greater than available nodes")
   cl <- makeCluster(cores)
   clusterExport(cl, c("krig_SW", "MaternFun", "eps", "invdet", "sq_dist"))
@@ -609,7 +610,7 @@ krig_SW <- function (y, dx, d_new = NULL, d_cross = NULL, theta, g, tau2 = 1,
 
 
 predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_latent = FALSE, 
-                                mean_map = TRUE, cores = parallel::detectCores() - 1, ...){
+                                mean_map = TRUE, cores = detectCores() - 1, ...){
   tic <- proc.time()[3]
   object <- clean_prediction(object)
   if (is.numeric(x_new)) 
@@ -632,7 +633,7 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
     chunks <- list(iters)
   }
   else chunks <- split(iters, sort(cut(iters, cores, labels = FALSE)))
-  if (cores > parallel::detectCores()) 
+  if (cores > detectCores()) 
     warning("cores is greater than available nodes")
   cl <- makeCluster(cores)
   registerDoParallel(cl)
