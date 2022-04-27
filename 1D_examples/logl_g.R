@@ -3,6 +3,7 @@
 library(deepgp)
 library(Rcpp)
 library(parallel)
+library(doParallel)
 
 sourceCpp("src/cov_SW.cpp")
 
