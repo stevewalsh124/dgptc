@@ -14,7 +14,7 @@ pk2 <- read.table(paste0("Mira-Titan-IV-data/Mira-Titan-2021/STEP",step,"/pk_M",
 
 # load the precision data (k, prec_highres, prec_lowres, index_list)
 load("Mira-Titan-IV-data/precision_and_indexes.Rdata")
-vars <- 1/prec_lowres[index_list$lowres.ix]
+precs <- prec_lowres[index_list$lowres.ix]
 
 # wavenumber is X, a particular lowres run in Y
 x <- log10(k[index_list$lowres.ix])
@@ -41,17 +41,17 @@ y_hi <- (y_hi - mean(y_hi))/sd(y_hi)
 # fit <- fit_two_layer(x, y_avg, cov = "exp2", nmcmc = 50000, vecchia = T)
 # save(fit,file=paste0("rda/fit4_avg_pm0_log10_vecc.rda"))
 
-fit4 <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 10000, true_g = vars/(sigma2_yavg*16), cov = "matern", v=2.5)
-# fit4 <- trim_SW(fit4, 1000)
-save(fit4, file = "rda/g_vector/test/fit4.rda")
+fit4 <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 252500, precs = (precs*sigma2_yavg*16), cov = "matern", v=2.5)
+fit4 <- trim_SW(fit4, 2500, 2)
+save(fit4, file = "rda/prec_vector/fitavg.rda")
 
-fit4v <- fit_two_layer_SW(x, y_avg, nmcmc = 10000, true_g = vars/(sigma2_yavg*16), vecchia = T)
-# fit4v <- trim_SW(fit4v, 1000)
-save(fit4v, file = "rda/g_vector/test/fit4v.rda")
+fit4v <- fit_two_layer_SW(x, y_avg, nmcmc = 252500, precs = (precs*sigma2_yavg*16), vecchia = T)
+fit4v <- trim_SW(fit4v, 2500, 2)
+save(fit4v, file = "rda/prec_vector/fitavg_vec.rda")
 
-fit4ve <- fit_two_layer(x, y_avg, nmcmc = 10000, true_g = vars/(sigma2_yavg*16), vecchia = T)
-# fit4ve <- trim_SW(fit4ve, 1000)
-save(fit4ve, file = "rda/g_vector/test/fit4vecchia_nonSW.rda")
+fit4ve <- fit_two_layer(x, y_avg, nmcmc = 252500, vecchia = T)
+fit4ve <- trim_SW(fit4ve, 2500, 2)
+save(fit4ve, file = "rda/prec_vector/fitavg_vec_scalarg.rda")
 
 fit4$time
 fit4v$time

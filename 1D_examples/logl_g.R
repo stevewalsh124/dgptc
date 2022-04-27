@@ -29,7 +29,7 @@ update_obs_in_approx <- deepgp:::update_obs_in_approx
 fit_two_layer_SW <- function (x, y, D = ifelse(is.matrix(x), ncol(x), 1), nmcmc = 10000, 
           verb = TRUE, w_0 = NULL, g_0 = 0.01, theta_y_0 = 0.1, theta_w_0 = 0.1, 
           true_g = NULL, settings = NULL, cov = c("matern", "exp2"), 
-          v = 2.5, vecchia = FALSE, m = min(25, length(y) - 1)) {
+          v = 2.5, vecchia = FALSE, m = min(25, length(y) - 1), precs = NULL) {
   tic <- proc.time()[3]
   cov <- match.arg(cov)
   if (vecchia & cov == "exp2") {
@@ -58,30 +58,32 @@ fit_two_layer_SW <- function (x, y, D = ifelse(is.matrix(x), ncol(x), 1), nmcmc 
   if (vecchia) 
     out$m <- m
   if (vecchia) {
-    if(length(true_g)==1){
+    if(is.null(precs)){
       samples <- gibbs_two_layer_vec(x, y, nmcmc, D, verb, initial, 
                                  true_g, settings, v, m)
     } else {
-      if(length(true_g)==nrow(x)){
+      if(length(precs)==nrow(x)){
         samples <- gibbs_two_layer_vec_SW(x, y, nmcmc, D, verb, initial, 
-                                      true_g, settings, v, m)
-      } else {print(stop("length of true_g must be 1 or length/nrow of x"))}
+                                      true_g, settings, v, m, precs = precs)
+      } else {print(stop("length of precs must be length/nrow of x"))}
     }
   } else {
-    # check if length(true_g) is equal to 1, or nrow(as.matrix(x))
-    if(length(true_g)==1){
+    # check if length(precs) is NULL, or nrow(as.matrix(x))
+    if(is.null(precs)){
       samples <- gibbs_two_layer(x, y, nmcmc, D, verb, initial, 
                                  true_g, settings, cov, v)
     } else {
-      if(length(true_g)==nrow(x)){
+      if(length(precs)==nrow(x)){
         samples <- gibbs_two_layer_SW(x, y, nmcmc, D, verb, initial, 
-                                   true_g, settings, cov, v)
-      } else {print(stop("length of true_g must be 1 or length/nrow of x"))}
+                                   true_g, settings, cov, v, precs)
+      } else {print(stop("length of precs must be the length/nrow of x"))}
     }
   }
   out <- c(out, samples)
   toc <- proc.time()[3]
   out$time <- toc - tic
+  if(!is.null(precs)) 
+    out$precs <- precs
   if (vecchia) 
     class(out) <- "dgp2vec"
   else class(out) <- "dgp2"
@@ -90,15 +92,14 @@ fit_two_layer_SW <- function (x, y, D = ifelse(is.matrix(x), ncol(x), 1), nmcmc 
 
 
 # use this version when g is a vector
-gibbs_two_layer_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings, cov, v){
+gibbs_two_layer_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings, cov, v, precs){
   print("using SW")
   dx <- sq_dist(x)
   dw <- sq_dist(initial$w)
-  if (is.null(true_g)) {g[1] <- initial$g} else {
-        if(length(true_g) != nrow(x)) stop("true_g should be length 1 or length of x")
-        g <- matrix(nrow = nmcmc, ncol = length(true_g))
-        g[1,] <- true_g
-  }
+  g <- vector(length = nmcmc)
+  if (is.null(true_g)) 
+    g[1] <- initial$g
+  else g[1] <- true_g
   theta_y <- vector(length = nmcmc)
   theta_y[1] <- initial$theta_y
   theta_w <- matrix(nrow = nmcmc, ncol = D)
@@ -110,23 +111,20 @@ gibbs_two_layer_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings,
   ll_outer <- NULL
   for (j in 2:nmcmc) {
     if (verb) 
-      if (j%%5000 == 0) 
+      if (j%%1000 == 0) 
         cat(j, "\n")
     if (is.null(true_g)) {
-      samp <- sample_g(y, dw, g[j - 1], theta_y[j - 1], 
+      samp <- sample_g_SW(y, dw, g[j - 1], theta_y[j - 1], 
                        alpha = settings$alpha$g, beta = settings$beta$g, 
                        l = settings$l, u = settings$u, ll_prev = ll_outer, 
-                       v = v, cov = cov)
+                       v = v, cov = cov, precs = precs)
       g[j] <- samp$g
       ll_outer <- samp$ll
-    }
-    else {
-      if(length(true_g)==1) {g[j] <- true_g} else {g[j,] <- true_g}
-    }
-    samp <- sample_theta_SW(y, dw, g[j,], theta_y[j - 1], alpha = settings$alpha$theta_y, 
+    } else {g[j] <- true_g}
+    samp <- sample_theta_SW(y, dw, g[j], theta_y[j - 1], alpha = settings$alpha$theta_y, 
                          beta = settings$beta$theta_y, l = settings$l, u = settings$u, 
                          outer = TRUE, ll_prev = ll_outer, v = v, cov = cov, 
-                         tau2 = TRUE)
+                         tau2 = TRUE, precs = precs)
     theta_y[j] <- samp$theta
     ll_outer <- samp$ll
     if (is.null(samp$tau2)) 
@@ -139,9 +137,9 @@ gibbs_two_layer_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings,
                            u = settings$u, outer = FALSE, v = v)
       theta_w[j, i] <- samp$theta
     }
-    samp <- sample_w_SW(y, w[[j - 1]], dw, dx, g[j,], theta_y[j], 
+    samp <- sample_w_SW(y, w[[j - 1]], dw, dx, g[j], theta_y[j], 
                      theta_w[j, ], ll_prev = ll_outer, v = v, cov = cov, 
-                     prior_mean = settings$w_prior_mean)
+                     prior_mean = settings$w_prior_mean, precs = precs)
     w[[j]] <- samp$w
     ll_outer <- samp$ll
     dw <- samp$dw
@@ -150,17 +148,36 @@ gibbs_two_layer_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings,
               w = w, tau2 = tau2))
 }
 
+sample_g_SW <- function (out_vec, in_dmat, g_t, theta, alpha, beta, l, u, ll_prev = NULL, v, cov, precs){
+  g_star <- runif(1, min = l * g_t/u, max = u * g_t/l)
+  ru <- runif(1, min = 0, max = 1)
+  if (is.null(ll_prev)) 
+    ll_prev <- logl_SW(out_vec, in_dmat, g_t, theta, outer = TRUE, 
+                    v, cov, precs = precs)$logl
+  lpost_threshold <- ll_prev + dgamma(g_t - eps, alpha, beta, 
+                                      log = TRUE) + log(ru) - log(g_t) + log(g_star)
+  ll_new <- logl_SW(out_vec, in_dmat, g_star, theta, outer = TRUE, 
+                 v, cov, precs = precs)$logl
+  new <- ll_new + dgamma(g_star - eps, alpha, beta, log = TRUE)
+  if (new > lpost_threshold) {
+    return(list(g = g_star, ll = ll_new))
+  }
+  else {
+    return(list(g = g_t, ll = ll_prev))
+  }
+}
+
 # change sample_theta for the outer=TRUE case
 sample_theta_SW <- function (out_vec, in_dmat, g, theta_t, alpha, beta, l, u, outer, 
-                                   ll_prev = NULL, v, cov, tau2 = FALSE){
+                                   ll_prev = NULL, v, cov, tau2 = FALSE, precs){
   theta_star <- runif(1, min = l * theta_t/u, max = u * theta_t/l)
   ru <- runif(1, min = 0, max = 1)
   if (is.null(ll_prev)) 
-    ll_prev <- logl_SW(out_vec, in_dmat, g, theta_t, outer, v, cov)$logl
+    ll_prev <- logl_SW(out_vec, in_dmat, g, theta_t, outer, v, cov, precs = precs)$logl
   lpost_threshold <- ll_prev + dgamma(theta_t, alpha, beta, 
                                       log = TRUE) + log(ru) - log(theta_t) + log(theta_star)
   ll_new <- logl_SW(out_vec, in_dmat, g, theta_star, outer, v, 
-                 cov, tau2 = tau2)
+                 cov, tau2 = tau2, precs = precs)
   if (ll_new$logl + dgamma(theta_star, alpha, beta, log = TRUE) > 
       lpost_threshold) {
     return(list(theta = theta_star, ll = ll_new$logl, tau2 = ll_new$tau2))
@@ -172,11 +189,11 @@ sample_theta_SW <- function (out_vec, in_dmat, g, theta_t, alpha, beta, l, u, ou
 
 # change sample_w (not the prior, just logl)
 sample_w_SW <- function (out_vec, w_t, w_t_dmat, in_dmat, g, theta_y, theta_w, 
-          ll_prev = NULL, v, cov, prior_mean) {
+          ll_prev = NULL, v, cov, prior_mean, precs) {
   D <- ncol(w_t)
   if (is.null(ll_prev)) 
     ll_prev <- logl_SW(out_vec, w_t_dmat, g, theta_y, outer = TRUE, 
-                    v = v, cov = cov)$logl
+                    v = v, cov = cov, precs = precs)$logl
   count <- vector(length = D)
   for (i in 1:D) {
     if (cov == "matern") {
@@ -196,7 +213,7 @@ sample_w_SW <- function (out_vec, w_t, w_t_dmat, in_dmat, g, theta_y, theta_w,
       w_t[, i] <- w_prev * cos(a) + w_prior * sin(a)
       dw <- sq_dist(w_t)
       new_logl <- logl_SW(out_vec, dw, g, theta_y, outer = TRUE, 
-                       v = v, cov = cov)$logl
+                       v = v, cov = cov, precs = precs)$logl
       if (new_logl > ll_threshold) {
         ll_prev <- new_logl
         accept <- TRUE
@@ -219,12 +236,12 @@ sample_w_SW <- function (out_vec, w_t, w_t_dmat, in_dmat, g, theta_y, theta_w,
 
 # change the log likelihood evaluation
 # MaternFun, Exp2Fun: didn't change these, just add the diagonal outside of C code
-logl_SW <- function (out_vec, in_dmat, g, theta, outer = TRUE, v, cov, tau2 = FALSE){
+logl_SW <- function (out_vec, in_dmat, g, theta, outer = TRUE, v, cov, tau2 = FALSE, precs){
     n <- length(out_vec)
     if (cov == "matern") {
-      K <- MaternFun(in_dmat, c(1, theta, 0, v)) + diag(1*g) #tau2=1 here, nugget is tau2*g
+      K <- MaternFun(in_dmat, c(1, theta, 0, v)) + diag(g/precs) #tau2=1 here, nugget is tau2*g
     }
-    else K <- Exp2Fun(in_dmat, c(1, theta, eps)) + diag(1*g) #tau2=1 here, nugget is tau2*g
+    else K <- Exp2Fun(in_dmat, c(1, theta, eps)) + diag(g/precs) #tau2=1 here, nugget is tau2*g
     id <- invdet(K)
     quadterm <- t(out_vec) %*% id$Mi %*% (out_vec)
     if (outer) {
@@ -244,18 +261,16 @@ logl_SW <- function (out_vec, in_dmat, g, theta, outer = TRUE, v, cov, tau2 = FA
 #########################################
 
 gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, settings, v, 
-          m, x_approx = NULL, w_approx = NULL) {
+          m, x_approx = NULL, w_approx = NULL, precs) {
   print("using SW")
   if (is.null(x_approx)) 
     x_approx <- create_approx(x, m)
   if (is.null(w_approx)) 
     w_approx <- create_approx(initial$w, m)
   g <- vector(length = nmcmc)
-  if (is.null(true_g)) {g[1] <- initial$g} else {
-    if(length(true_g) != nrow(x)) stop("true_g should be length 1 or length of x")
-    g <- matrix(nrow = nmcmc, ncol = length(true_g))
-    g[1,] <- true_g
-  }
+  if (is.null(true_g)) 
+    g[1] <- initial$g
+  else g[1] <- true_g
   theta_y <- vector(length = nmcmc)
   theta_y[1] <- initial$theta_y
   theta_w <- matrix(nrow = nmcmc, ncol = D)
@@ -267,22 +282,20 @@ gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, setti
   ll_outer <- NULL
   for (j in 2:nmcmc) {
     if (verb) 
-      if (j%%500 == 0) 
+      if (j%%1000 == 0) 
         cat(j, "\n")
     if (is.null(true_g)) {
-      samp <- sample_g_vec(y, g[j - 1], theta_y[j - 1], 
+      samp <- sample_g_vec_SW(y, g[j - 1], theta_y[j - 1], 
                            alpha = settings$alpha$g, beta = settings$beta$g, 
                            l = settings$l, u = settings$u, ll_prev = ll_outer, 
-                           approx = w_approx, v = v)
+                           approx = w_approx, v = v, precs = precs)
       g[j] <- samp$g
       ll_outer <- samp$ll
-    } else {
-      if(length(true_g)==1) {g[j] <- true_g} else {g[j,] <- true_g}
-    }
-    samp <- sample_theta_vec_SW(y, g[j,], theta_y[j - 1], alpha = settings$alpha$theta_y, 
+    } else { g[j] <- true_g }
+    samp <- sample_theta_vec_SW(y, g[j], theta_y[j - 1], alpha = settings$alpha$theta_y, 
                              beta = settings$beta$theta_y, l = settings$l, u = settings$u, 
                              outer = TRUE, ll_prev = ll_outer, approx = w_approx, 
-                             v = v, tau2 = TRUE)
+                             v = v, tau2 = TRUE, precs = precs)
     theta_y[j] <- samp$theta
     ll_outer <- samp$ll
     if (is.null(samp$tau2)) tau2[j] <- tau2[j - 1] else tau2[j] <- samp$tau2
@@ -294,26 +307,45 @@ gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, setti
                                v = v)
       theta_w[j, i] <- samp$theta
     }
-    samp <- sample_w_vec_SW(y, w_approx, x_approx, g[j,], theta_y[j], 
-                         theta_w[j, ], ll_prev = ll_outer, v = v, prior_mean = settings$w_prior_mean)
+    samp <- sample_w_vec_SW(y, w_approx, x_approx, g[j], theta_y[j], 
+                         theta_w[j, ], ll_prev = ll_outer, v = v, prior_mean = settings$w_prior_mean, precs = precs)
     w_approx <- samp$w_approx
     w[[j]] <- w_approx$x_ord[w_approx$rev_ord_obs, , drop = FALSE]
     ll_outer <- samp$ll
   }
   return(list(g = g, theta_y = theta_y, theta_w = theta_w, 
-              w = w, tau2 = tau2, w_approx = w_approx, x_approx = x_approx))
+              w = w, tau2 = tau2, w_approx = w_approx, x_approx = x_approx, precs = precs))
+}
+
+sample_g_vec_SW <- function (y, g_t, theta, alpha, beta, l, u, ll_prev = NULL, approx, v, precs){
+  g_star <- runif(1, min = l * g_t/u, max = u * g_t/l)
+  ru <- runif(1, min = 0, max = 1)
+  if (is.null(ll_prev)) 
+    ll_prev <- logl_vec_SW(y, approx, g_t, theta, outer = TRUE, 
+                        v, precs = precs)$logl
+  lpost_threshold <- ll_prev + dgamma(g_t - eps, alpha, beta, 
+                                      log = TRUE) + log(ru) - log(g_t) + log(g_star)
+  ll_new <- logl_vec_SW(y, approx, g_star, theta, outer = TRUE, 
+                     v, precs = precs)$logl
+  new <- ll_new + dgamma(g_star - eps, alpha, beta, log = TRUE)
+  if (new > lpost_threshold) {
+    return(list(g = g_star, ll = ll_new))
+  }
+  else {
+    return(list(g = g_t, ll = ll_prev))
+  }
 }
 
 sample_theta_vec_SW <- function (y, g, theta_t, alpha, beta, l, u, outer, ll_prev = NULL, 
-          approx, v, tau2 = FALSE) {
+          approx, v, tau2 = FALSE, precs) {
 
   theta_star <- runif(1, min = l * theta_t/u, max = u * theta_t/l)
   ru <- runif(1, min = 0, max = 1)
   if (is.null(ll_prev)) 
-    ll_prev <- logl_vec_SW(y, approx, g, theta_t, outer, v)$logl
+    ll_prev <- logl_vec_SW(y, approx, g, theta_t, outer, v, precs = precs)$logl
   lpost_threshold <- ll_prev + dgamma(theta_t, alpha, beta, 
                                       log = TRUE) + log(ru) - log(theta_t) + log(theta_star)
-  ll_new <- logl_vec_SW(y, approx, g, theta_star, outer, v, tau2 = tau2)
+  ll_new <- logl_vec_SW(y, approx, g, theta_star, outer, v, tau2 = tau2, precs = precs)
   if (ll_new$logl + dgamma(theta_star, alpha, beta, log = TRUE) > 
       lpost_threshold) {
     return(list(theta = theta_star, ll = ll_new$logl, tau2 = ll_new$tau2))
@@ -324,11 +356,11 @@ sample_theta_vec_SW <- function (y, g, theta_t, alpha, beta, l, u, outer, ll_pre
 }
 
 sample_w_vec_SW <- function (y, w_approx, x_approx, g, theta_y, theta_w, ll_prev = NULL, 
-          v, prior_mean) {
+          v, prior_mean, precs) {
 
   D <- ncol(w_approx$x_ord)
   if (is.null(ll_prev)) 
-    ll_prev <- logl_vec_SW(y, w_approx, g, theta_y, outer = TRUE, v)$logl
+    ll_prev <- logl_vec_SW(y, w_approx, g, theta_y, outer = TRUE, v, precs = precs)$logl
   for (i in 1:D) {
     w_prior <- rand_mvn_vec(x_approx, theta_w[i], v, prior_mean[, i])
     a <- runif(1, min = 0, max = 2 * pi)
@@ -345,7 +377,7 @@ sample_w_vec_SW <- function (y, w_approx, x_approx, g, theta_y, theta_w, ll_prev
       w_approx <- update_obs_in_approx(w_approx, w_proposal, 
                                        i)
       new_logl <- logl_vec_SW(y, w_approx, g, theta_y, outer = TRUE, 
-                           v)$logl
+                           v, precs = precs)$logl
       if (new_logl > ll_threshold) {
         ll_prev <- new_logl
         accept <- TRUE
@@ -366,10 +398,10 @@ sample_w_vec_SW <- function (y, w_approx, x_approx, g, theta_y, theta_w, ll_prev
   return(list(w_approx = w_approx, ll = ll_prev))
 }
 
-logl_vec_SW <- function (out_vec, approx, g, theta, outer = TRUE, v, tau2 = FALSE) {
+logl_vec_SW <- function (out_vec, approx, g, theta, outer = TRUE, v, tau2 = FALSE, precs) {
   n <- length(out_vec)
   out_vec_ord <- out_vec[approx$ord]
-  U_mat <- create_U_SW(approx, g, theta, v)
+  U_mat <- create_U_SW(approx, g, theta, v, precs)
   Uty <- Matrix::crossprod(U_mat, out_vec_ord)
   ytUUty <- sum(Uty^2)
   logdet <- sum(log(Matrix::diag(U_mat)))
@@ -386,10 +418,10 @@ logl_vec_SW <- function (out_vec, approx, g, theta, outer = TRUE, v, tau2 = FALS
   return(list(logl = logl, tau2 = tau2))
 }
 
-create_U_SW <- function (approx, g, theta, v) {
+create_U_SW <- function (approx, g, theta, v, precs) {
   n <- nrow(approx$x_ord)
   U <- U_entries_SW(approx$n_cores, n, approx$x_ord, approx$revNN,
-                 approx$revCond, c(1, theta, 0, v), g)
+                 approx$revCond, c(1, theta, 0, v), g = g/precs)
   U <- c(t(U))[approx$notNA]
   U_mat <- Matrix::sparseMatrix(i = approx$col_indices, j = approx$row_pointers,
                                 x = U, dims = c(n, n))
