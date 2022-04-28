@@ -720,9 +720,9 @@ krig_vec_SW <- function (y, theta, g, tau2 = 1, s2 = FALSE, sigma = FALSE, v, pr
       out$s2 <- vector(length = n_new)
     for (i in 1:n_new) {
       NN <- NNarray_pred[i, ]
-      x_combined <- rbind(x[NN, , drop = FALSE], x_new[i, 
-                                                       , drop = FALSE])
-      K <- MaternFun(sq_dist(x_combined), c(1, theta, g, v)) # + diag(c(g/precs, g)); (g to 0 in MF) Need to get precsubset, and pred prec
+      x_combined <- rbind(x[NN, , drop = FALSE], x_new[i, , drop = FALSE])
+      precsub <- precs[NN]
+      K <- MaternFun(sq_dist(x_combined), c(1, theta, 0, v)) + diag(c(g/precsub, 0)) # change 2nd 0 for Y|X in lieu of E(Y|X)
       L <- t(chol(K))
       out$mean[i] <- L[m + 1, 1:m] %*% forwardsolve(L[1:m, 1:m], y[NN])
       if (s2) 
