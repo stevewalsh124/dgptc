@@ -31,6 +31,12 @@ y <- (y - mean(y))/sd(y)
 y_avg <- (y_avg - mean(y_avg))/sd(y_avg)
 y_hi <- (y_hi - mean(y_hi))/sd(y_hi)
 
+# get predictions for xx and have corresponding prec info
+xx <- setdiff(seq(0,1,by=.001), x)
+lmfit <- lm(log10(precs) ~ x)
+betahat <- coef(lmfit)
+precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
+
 #######################
 # run for actual data #
 #######################
@@ -42,21 +48,30 @@ y_hi <- (y_hi - mean(y_hi))/sd(y_hi)
 # save(fit,file=paste0("rda/fit4_avg_pm0_log10_vecc.rda"))
 
 fit4 <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 252500, precs = (precs*sigma2_yavg*16), cov = "matern", v=2.5)
-xx <- setdiff(seq(0,1,by=.001), fit4$x)
-fit4 <- trim_SW(fit4, 2500, 2)
-fit4 <- predict.dgp2_SW(fit4, xx)
-save(fit4, file = "rda/prec_vector/fitavg.rda")
+fit4 <- trim_SW(fit4, 2500, 10)
+fit4 <- predict.dgp2_SW(fit4, xx, precs_pred = precs_pred*sigma2_yavg*16)
+plot(fit4)
+save(fit4, file = "rda/prec_vector/fit4.rda")
 
-fit4v <- fit_two_layer_SW(x, y_avg, nmcmc = 252500, precs = (precs*sigma2_yavg*16), vecchia = T)
-fit4v <- trim_SW(fit4v, 2500, 2)
-fit4v <- predict.dgp2_SW(fit4v, xx)
-save(fit4v, file = "rda/prec_vector/fitavg_vec.rda")
+fit4d <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 252500, precs = (precs*sigma2_yavg*16), cov = "matern", v=2.5)
+fit4d <- trim_SW(fit4d, 2500, 10)
+fit4d <- predict.dgp2_SW(fit4d, xx, precs_pred = precs_pred*sigma2_yavg*16)
+plot(fit4d)
+save(fit4d, file = "rda/prec_vector/fit4d.rda")
 
-fit4ve <- fit_two_layer(x, y_avg, nmcmc = 252500, vecchia = T)
-fit4ve <- trim_SW(fit4ve, 2500, 2)
-fit4ve <- predict.dgp2_SW(fit4ve, xx)
-save(fit4ve, file = "rda/prec_vector/fitavg_vec_scalarg.rda")
+fit4z <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 252500, precs = (precs*sigma2_yavg*16), cov = "matern", v=2.5)
+fit4z <- trim_SW(fit4z, 2500, 10)
+fit4z <- predict.dgp2_SW(fit4z, xx, precs_pred = rep(0,length(xx)))
+plot(fit4z)
+save(fit4z, file = "rda/prec_vector/fit4z.rda")
+
+fit4inf <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 252500, precs = (precs*sigma2_yavg*16), cov = "matern", v=2.5)
+fit4inf <- trim_SW(fit4inf, 2500, 10)
+fit4inf <- predict.dgp2_SW(fit4inf, xx, precs_pred = rep(Inf,length(xx)))
+plot(fit4inf)
+save(fit4inf, file = "rda/prec_vector/fit4inf.rda")
 
 fit4$time
-fit4v$time
-fit4ve$time
+fit4d$time
+fit4z$time
+fit4inf$time

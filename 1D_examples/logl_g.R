@@ -470,7 +470,7 @@ trim_SW <- function(object, burn, thin = 1) {
 clean_prediction <- deepgp:::clean_prediction
 
 predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, mean_map = TRUE, 
-                             EI = FALSE, cores = detectCores() - 1, ...){
+                             EI = FALSE, cores = detectCores() - 1, precs_pred = NULL, ...){
   tic <- proc.time()[3]
   object <- clean_prediction(object)
   if (is.numeric(x_new)) 
@@ -510,12 +510,12 @@ predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, m
       for (i in 1:D) {
         if (mean_map) {
           k <- krig_SW(w_t[, i], dx, NULL, d_cross, object$theta_w[t, i], 
-                       g = eps, v = object$v, precs = object$precs)
+                       g = eps, v = object$v, precs = object$precs, precs_pred = precs_pred)
           w_new[, i] <- k$mean
         }
         else {
           k <- krig_SW(w_t[, i], dx, d_new, d_cross, object$theta_w[t, i], 
-                       g = eps, sigma = TRUE, v = object$v, precs = object$precs)
+                       g = eps, sigma = TRUE, v = object$v, precs = object$precs, precs_pred = precs_pred)
           w_new[, i] <- mvtnorm::rmvnorm(1, k$mean, k$sigma)
         }
       }
@@ -524,7 +524,7 @@ predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, m
       k <- krig_SW(object$y, sq_dist(w_t), sq_dist(w_new), 
                 sq_dist(w_new, w_t), object$theta_y[t], object$g[t], 
                 object$tau2[t], s2 = lite, sigma = !lite, f_min = EI, 
-                v = object$v, precs = object$precs)
+                v = object$v, precs = object$precs, precs_pred = precs_pred)
       out$mu_t[, j] <- k$mean
       if (lite) {
         out$s2_sum <- out$s2_sum + k$s2
@@ -574,7 +574,7 @@ predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, m
 }
 
 krig_SW <- function (y, dx, d_new = NULL, d_cross = NULL, theta, g, tau2 = 1, 
-                     s2 = FALSE, sigma = FALSE, f_min = FALSE, v = 2.5, precs){
+                     s2 = FALSE, sigma = FALSE, f_min = FALSE, v = 2.5, precs, precs_pred = rep(Inf, length(y))){
   out <- list()
   if (v == 999) {
     C <- Exp2Fun(dx, c(1, theta, 0)) + diag(g/precs)
@@ -601,9 +601,9 @@ krig_SW <- function (y, dx, d_new = NULL, d_cross = NULL, theta, g, tau2 = 1,
   if (sigma) {
     quadterm <- C_cross %*% C_inv %*% t(C_cross)
     if (v == 999) {
-      C_new <- Exp2Fun(d_new, c(1, theta, eps)) # + diag(g/pred_precs) # use this for Y(X), not E(Y(X))
+      C_new <- Exp2Fun(d_new, c(1, theta, eps)) + diag(g/precs_pred) # rm diag for E(Y(X))
     }
-    else C_new <- MaternFun(d_new, c(1, theta, 0, v)) # + diag(g/pred_precs)
+    else C_new <- MaternFun(d_new, c(1, theta, 0, v)) + diag(g/precs_pred) # rm diag for E(Y|X)
     out$sigma <- tau2 * (C_new - quadterm)
   }
   return(out)
@@ -611,7 +611,7 @@ krig_SW <- function (y, dx, d_new = NULL, d_cross = NULL, theta, g, tau2 = 1,
 
 
 predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_latent = FALSE, 
-                                mean_map = TRUE, cores = detectCores() - 1, ...){
+                                mean_map = TRUE, cores = detectCores() - 1, precs_pred = NULL, ...){
   tic <- proc.time()[3]
   object <- clean_prediction(object)
   if (is.numeric(x_new)) 
@@ -656,7 +656,7 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
       for (i in 1:D) {
         k <- krig_vec_SW(w_t[, i], object$theta_w[t, i], 
                       g = eps, tau2 = 1, v = object$v, precs = object$precs, m = m, x = object$x, 
-                      x_new = x_new, NNarray_pred = NN_x_new)
+                      x_new = x_new, NNarray_pred = NN_x_new, precs_pred = NULL)
         w_new[, i] <- k$mean
       }
       if (store_latent) 
@@ -670,7 +670,7 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
       }
       k <- krig_vec_SW(object$y, object$theta_y[t], object$g[t], 
                     object$tau2[t], s2 = lite, sigma = !lite, v = object$v, precs = object$precs,
-                    m = m, x = w_t, x_new = w_new, approx = w_approx)
+                    m = m, x = w_t, x_new = w_new, approx = w_approx, precs_pred = NULL)
       out$mu_t[, j] <- k$mean
       if (lite) {
         out$s2_sum <- out$s2_sum + k$s2
@@ -708,7 +708,7 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
   return(object)
 }
 
-krig_vec_SW <- function (y, theta, g, tau2 = 1, s2 = FALSE, sigma = FALSE, v, precs,
+krig_vec_SW <- function (y, theta, g, tau2 = 1, s2 = FALSE, sigma = FALSE, v, precs, precs_pred = rep(Inf, length(y)), 
                          m = NULL, x = NULL, x_new = NULL, NNarray_pred = NULL, approx = NULL){
   out <- list()
   if (!sigma) {
@@ -722,7 +722,7 @@ krig_vec_SW <- function (y, theta, g, tau2 = 1, s2 = FALSE, sigma = FALSE, v, pr
       NN <- NNarray_pred[i, ]
       x_combined <- rbind(x[NN, , drop = FALSE], x_new[i, , drop = FALSE])
       precsub <- precs[NN]
-      K <- MaternFun(sq_dist(x_combined), c(1, theta, 0, v)) + diag(c(g/precsub, 0)) # change 2nd 0 for Y|X in lieu of E(Y|X)
+      K <- MaternFun(sq_dist(x_combined), c(1, theta, 0, v)) + diag(c(g/precsub, g/precs_pred[i])) # rm diag for E(Y|X)
       L <- t(chol(K))
       out$mean[i] <- L[m + 1, 1:m] %*% forwardsolve(L[1:m, 1:m], y[NN])
       if (s2) 
