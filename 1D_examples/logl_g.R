@@ -473,6 +473,7 @@ predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, m
                              EI = FALSE, cores = detectCores() - 1, precs_pred = NULL, ...){
   tic <- proc.time()[3]
   object <- clean_prediction(object)
+  if(object$cov == "exp2") object$v <- 999
   if (is.numeric(x_new)) 
     x_new <- as.matrix(x_new)
   object$x_new <- x_new
@@ -489,7 +490,7 @@ predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, m
   if (cores > detectCores()) 
     warning("cores is greater than available nodes")
   cl <- makeCluster(cores)
-  clusterExport(cl, c("krig_SW", "MaternFun", "eps", "invdet", "sq_dist"))
+  clusterExport(cl, c("krig_SW", "MaternFun", "eps", "invdet", "sq_dist", "Exp2Fun"))
   registerDoParallel(cl)
   thread <- NULL
   result <- foreach(thread = 1:cores) %dopar% {
@@ -560,11 +561,11 @@ predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, m
     object$w_new <- w_new
   if (lite) {
     object$s2 <- s2_sum/object$nmcmc + diag(mu_cov)
-    object$s2_smooth <- object$s2 - mean(object$g * object$tau2)
+    object$s2_smooth <- object$s2 - mean(object$g * object$tau2)/precs_pred
   }
   else {
     object$Sigma <- sigma_sum/object$nmcmc + mu_cov
-    object$Sigma_smooth <- object$Sigma - diag(mean(object$g * object$tau2), n_new)
+    object$Sigma_smooth <- object$Sigma - diag(mean(object$g * object$tau2)/precs_pred, n_new)
   }
   if (EI) 
     object$EI <- ei_sum/object$nmcmc
@@ -614,6 +615,7 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
                                 mean_map = TRUE, cores = detectCores() - 1, precs_pred = NULL, ...){
   tic <- proc.time()[3]
   object <- clean_prediction(object)
+  if(object$cov == "exp2") object$v <- 999
   if (is.numeric(x_new)) 
     x_new <- as.matrix(x_new)
   object$x_new <- x_new
@@ -637,10 +639,11 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
   if (cores > detectCores()) 
     warning("cores is greater than available nodes")
   cl <- makeCluster(cores)
-  clusterExport(cl, c("krig_vec_SW", "MaternFun", "eps", "invdet", "sq_dist", "create_U_SW", "MaternFun_SW"))
+  clusterExport(cl, c("krig_vec_SW", "MaternFun", "eps", "invdet", "sq_dist", "create_U_SW", "MaternFun_SW",
+                      "Exp2Fun", "Exp2Fun_SW"))
   registerDoParallel(cl)
   thread <- NULL
-  result <- foreach(thread = 1:cores) %dopar% {
+  result <- foreach(thread = 1:cores) %do% {
     out <- list()
     if (store_latent) 
       out$w_new <- list()
@@ -656,7 +659,7 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
       for (i in 1:D) {
         k <- krig_vec_SW(w_t[, i], object$theta_w[t, i], 
                       g = eps, tau2 = 1, v = object$v, precs = object$precs, m = m, x = object$x, 
-                      x_new = x_new, NNarray_pred = NN_x_new, precs_pred = NULL)
+                      x_new = x_new, NNarray_pred = NN_x_new, precs_pred = precs_pred)
         w_new[, i] <- k$mean
       }
       if (store_latent) 
@@ -670,7 +673,7 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
       }
       k <- krig_vec_SW(object$y, object$theta_y[t], object$g[t], 
                     object$tau2[t], s2 = lite, sigma = !lite, v = object$v, precs = object$precs,
-                    m = m, x = w_t, x_new = w_new, approx = w_approx, precs_pred = NULL)
+                    m = m, x = w_t, x_new = w_new, approx = w_approx, precs_pred = precs_pred)
       out$mu_t[, j] <- k$mean
       if (lite) {
         out$s2_sum <- out$s2_sum + k$s2
@@ -697,11 +700,11 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
     object$w_new <- w_new
   if (lite) {
     object$s2 <- s2_sum/object$nmcmc + diag(mu_cov)
-    object$s2_smooth <- object$s2 - mean(object$g * object$tau2)
+    object$s2_smooth <- object$s2 - mean(object$g * object$tau2)/precs_pred
   }
   else {
     object$Sigma <- sigma_sum/object$nmcmc + mu_cov
-    object$Sigma_smooth <- object$Sigma - diag(mean(object$g * object$tau2), n_new)
+    object$Sigma_smooth <- object$Sigma - diag(mean(object$g * object$tau2)/precs_pred, n_new)
   }
   toc <- proc.time()[3]
   object$time <- object$time + (toc - tic)
