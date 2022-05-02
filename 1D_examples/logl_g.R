@@ -643,7 +643,7 @@ predict.dgp2vec_SW <- function (object, x_new, m = object$m, lite = TRUE, store_
                       "Exp2Fun", "Exp2Fun_SW"))
   registerDoParallel(cl)
   thread <- NULL
-  result <- foreach(thread = 1:cores) %do% {
+  result <- foreach(thread = 1:cores) %dopar% {
     out <- list()
     if (store_latent) 
       out$w_new <- list()
