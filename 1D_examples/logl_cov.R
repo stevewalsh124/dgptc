@@ -192,7 +192,6 @@ sample_theta_SW <- function (out_vec, in_dmat, g, theta_t, alpha, beta, l, u, ou
 # change sample_w (not the prior, just logl)
 sample_w_SW <- function (out_vec, w_t, w_t_dmat, in_dmat, g, theta_y, theta_w, 
                          ll_prev = NULL, v, cov, prior_mean, Sigma_hat) {
-  print("sample w")
   D <- ncol(w_t)
   if (is.null(ll_prev)) 
     ll_prev <- logl_SW(out_vec, w_t_dmat, g, theta_y, outer = TRUE, 
@@ -213,14 +212,11 @@ sample_w_SW <- function (out_vec, w_t, w_t_dmat, in_dmat, g, theta_y, theta_w,
     w_prev <- w_t[, i]
     while (accept == FALSE) {
       count <- count + 1
-      print(count)
       w_t[, i] <- w_prev * cos(a) + w_prior * sin(a)
       dw <- sq_dist(w_t)
       new_logl <- logl_SW(out_vec, dw, g, theta_y, outer = TRUE, 
                           v = v, cov = cov, Sigma_hat = Sigma_hat)$logl
-      print(new_logl)
       if (new_logl > ll_threshold) {
-        print("accept new_logl!")
         ll_prev <- new_logl
         accept <- TRUE
       }
@@ -245,9 +241,9 @@ sample_w_SW <- function (out_vec, w_t, w_t_dmat, in_dmat, g, theta_y, theta_w,
 logl_SW <- function (out_vec, in_dmat, g, theta, outer = TRUE, v, cov, tau2 = FALSE, Sigma_hat){
   n <- length(out_vec)
   if (cov == "matern") {
-    K <- MaternFun(in_dmat, c(1, theta, 0, v)) + g*Sigma_hat #tau2=1 here, nugget is tau2*g
+    K <- MaternFun(in_dmat, c(1, theta, 0, v)) + g*Sigma_hat + diag(x = eps, nrow = n) #tau2=1, nug=tau2*g
   }
-  else K <- Exp2Fun(in_dmat, c(1, theta, eps)) + g*Sigma_hat #tau2=1 here, nugget is tau2*g
+  else K <- Exp2Fun(in_dmat, c(1, theta, eps)) + g*Sigma_hat + diag(x = eps, nrow = n) #tau2=1, nug=tau2*g
   id <- invdet(K)
   quadterm <- t(out_vec) %*% id$Mi %*% (out_vec)
   if (outer) {
@@ -476,8 +472,10 @@ clean_prediction <- deepgp:::clean_prediction
 predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, mean_map = TRUE, 
                              EI = FALSE, cores = detectCores() - 1, precs_pred = NULL, ...){
   tic <- proc.time()[3]
-  object <- clean_prediction(object)
-  if(object$cov == "exp2") object$v <- 999
+  # print(object$cov); print(object$v); print(object$nmcmc)
+  # object <- clean_prediction(object)
+  # print(object$cov); print(object$v); print(object$nmcmc)
+  if(object$cov == "exp2"){object$v <- 999}
   if (is.numeric(x_new)) 
     x_new <- as.matrix(x_new)
   object$x_new <- x_new
@@ -515,12 +513,12 @@ predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, m
       for (i in 1:D) {
         if (mean_map) {
           k <- krig_SW(w_t[, i], dx, NULL, d_cross, object$theta_w[t, i], 
-                       g = eps, v = object$v, precs = object$precs, precs_pred = precs_pred)
+                       g = eps, v = object$v, Sigma_hat = object$Sigma_hat, precs_pred = precs_pred)
           w_new[, i] <- k$mean
         }
         else {
           k <- krig_SW(w_t[, i], dx, d_new, d_cross, object$theta_w[t, i], 
-                       g = eps, sigma = TRUE, v = object$v, precs = object$precs, precs_pred = precs_pred)
+                       g = eps, sigma = TRUE, v = object$v, Sigma_hat = object$Sigma_hat, precs_pred = precs_pred)
           w_new[, i] <- mvtnorm::rmvnorm(1, k$mean, k$sigma)
         }
       }
@@ -529,7 +527,7 @@ predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, m
       k <- krig_SW(object$y, sq_dist(w_t), sq_dist(w_new), 
                    sq_dist(w_new, w_t), object$theta_y[t], object$g[t], 
                    object$tau2[t], s2 = lite, sigma = !lite, f_min = EI, 
-                   v = object$v, precs = object$precs, precs_pred = precs_pred)
+                   v = object$v, Sigma_hat = object$Sigma_hat, precs_pred = precs_pred)
       out$mu_t[, j] <- k$mean
       if (lite) {
         out$s2_sum <- out$s2_sum + k$s2
@@ -579,14 +577,15 @@ predict.dgp2_SW <- function (object, x_new, lite = TRUE, store_latent = FALSE, m
 }
 
 krig_SW <- function (y, dx, d_new = NULL, d_cross = NULL, theta, g, tau2 = 1, 
-                     s2 = FALSE, sigma = FALSE, f_min = FALSE, v = 2.5, precs, precs_pred = rep(Inf, length(y))){
+                     s2 = FALSE, sigma = FALSE, f_min = FALSE, v = 2.5, Sigma_hat, precs_pred = rep(Inf, length(y))){
   out <- list()
+  n <- length(y)
   if (v == 999) {
-    C <- Exp2Fun(dx, c(1, theta, 0)) + diag(g/precs)
+    C <- Exp2Fun(dx, c(1, theta, 0)) + Sigma_hat + diag(x = eps, nrow = n)
     C_cross <- Exp2Fun(d_cross, c(1, theta, 0))
   }
   else {
-    C <- MaternFun(dx, c(1, theta, 0, v)) + diag(g/precs)
+    C <- MaternFun(dx, c(1, theta, 0, v)) + Sigma_hat + diag(x = eps, nrow = n)
     C_cross <- MaternFun(d_cross, c(1, theta, 0, v))
   }
   C_inv <- invdet(C)$Mi
@@ -606,9 +605,9 @@ krig_SW <- function (y, dx, d_new = NULL, d_cross = NULL, theta, g, tau2 = 1,
   if (sigma) {
     quadterm <- C_cross %*% C_inv %*% t(C_cross)
     if (v == 999) {
-      C_new <- Exp2Fun(d_new, c(1, theta, eps)) + diag(g/precs_pred) # rm diag for E(Y(X))
+      C_new <- Exp2Fun(d_new, c(1, theta, eps)) + diag(1/precs_pred) # rm diag for E(Y(X))
     }
-    else C_new <- MaternFun(d_new, c(1, theta, 0, v)) + diag(g/precs_pred) # rm diag for E(Y|X)
+    else C_new <- MaternFun(d_new, c(1, theta, 0, v)) + diag(1/precs_pred) # rm diag for E(Y|X)
     out$sigma <- tau2 * (C_new - quadterm)
   }
   return(out)

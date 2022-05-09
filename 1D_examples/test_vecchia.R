@@ -1,4 +1,8 @@
-source("logl_g.R")
+source("logl_cov.R")
+
+nmcmc <- 25000
+nburn <- 5000
+kth <- 2
 
 bte <- 3 # cols 3-18 are low res
 
@@ -22,18 +26,25 @@ y <- log10(pk2[index_list$lowres.ix, bte])
 y_avg <- rowMeans(log10(pk2[index_list$lowres.ix, 3:18]))
 y_hi <- log10(pk2[index_list$lowres.ix, 19])
 
+# get sample covariance matrix for the 16 low res runs
+Y <- t(log10(pk2[index_list$lowres.ix, 3:18]))
+
 # save var(y_avg) to adjust prec values in the final fit call
 sigma2_y <- var(y)
 sigma2_yavg <- var(y_avg)
 
 x <- (x - min(x))/(max(x)-min(x))
 y <- (y - mean(y))/sd(y)
+Y <- (Y - mean(Y))/sd(Y)
 y_avg <- (y_avg - mean(y_avg))/sd(y_avg)
 y_hi <- (y_hi - mean(y_hi))/sd(y_hi)
 
+# obstain sample cov mat after rescaling
+covY <- cov(Y)
+
 # get predictions for xx and have corresponding prec info
-xx <- setdiff(seq(0,1,by=.001), x)
-lmfit <- lm(log10(precs) ~ x)
+xx <- setdiff(seq(0,1,by=.01), x)
+lmfit <- lm(log10(1/diag(covY)) ~ x) #precs for logl_g.R
 betahat <- coef(lmfit)
 precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
 
@@ -41,37 +52,27 @@ precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
 # run for actual data #
 #######################
 
-# # original fit for the average of the 16 low res avg (no vectorized nugget)
-# fit <- fit_two_layer(x, y_avg, cov = "matern", v=2.5, nmcmc = 50000, vecchia = T)
-# save(fit,file=paste0("rda/fit3_avg_pm0_log10_vecc.rda"))
-# fit <- fit_two_layer(x, y_avg, cov = "exp2", nmcmc = 50000, vecchia = T)
-# save(fit,file=paste0("rda/fit4_avg_pm0_log10_vecc.rda"))
+# fit4 <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, precs = precs*sigma2_yavg*16)
+# fit4 <- trim_SW(fit4, nburn, kth)
+# fit4 <- predict.dgp2_SW(fit4, xx, precs_pred = (precs_pred*sigma2_yavg*16), cores=2)
+# plot(fit4)
+# plot(fit4$x_new, fit4$mean, type="l", col="blue")
+# lines(fit4$x_new, fit4$mean-30*sqrt(fit4$s2_smooth))
+# lines(fit4$x_new, fit4$mean+30*sqrt(fit4$s2_smooth))
+# lines(fit4$x_new, fit4$mean-30*sqrt(fit4$s2))
+# lines(fit4$x_new, fit4$mean+30*sqrt(fit4$s2))
+# save(fit4, file = "rda/prec_vector/new/fit4mat.rda")
 
-fit4 <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 252500, precs = (precs*sigma2_yavg*16), cov = "matern", v=2.5)
-fit4 <- trim_SW(fit4, 2500, 10)
-fit4 <- predict.dgp2_SW(fit4, xx, precs_pred = precs_pred*sigma2_yavg*16)
-plot(fit4)
-save(fit4, file = "rda/prec_vector/fit4.rda")
-
-fit4d <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 252500, precs = (precs*sigma2_yavg*16), cov = "matern", v=2.5)
-fit4d <- trim_SW(fit4d, 2500, 10)
-fit4d <- predict.dgp2_SW(fit4d, xx, precs_pred = precs_pred*sigma2_yavg*16)
-plot(fit4d)
-save(fit4d, file = "rda/prec_vector/fit4d.rda")
-
-fit4z <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 252500, precs = (precs*sigma2_yavg*16), cov = "matern", v=2.5)
-fit4z <- trim_SW(fit4z, 2500, 10)
-fit4z <- predict.dgp2_SW(fit4z, xx, precs_pred = rep(0,length(xx)))
-plot(fit4z)
-save(fit4z, file = "rda/prec_vector/fit4z.rda")
-
-fit4inf <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = 252500, precs = (precs*sigma2_yavg*16), cov = "matern", v=2.5)
-fit4inf <- trim_SW(fit4inf, 2500, 10)
-fit4inf <- predict.dgp2_SW(fit4inf, xx, precs_pred = rep(Inf,length(xx)))
-plot(fit4inf)
-save(fit4inf, file = "rda/prec_vector/fit4inf.rda")
-
-fit4$time
-fit4d$time
-fit4z$time
-fit4inf$time
+fitcov <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = covY)#, cov = "exp2")
+plot(fitcov)
+fitcov <- trim_SW(fitcov, nburn, kth)
+plot(fitcov)
+fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=6, precs_pred = precs_pred)
+plot(fitcov$x_new, fitcov$mean, type="l", col="blue")
+lines(fitcov$x_new, fitcov$mean-2*sqrt(fitcov$s2_smooth))
+lines(fitcov$x_new, fitcov$mean+2*sqrt(fitcov$s2_smooth))
+lines(fitcov$x_new, fitcov$mean-2*sqrt(fitcov$s2))
+lines(fitcov$x_new, fitcov$mean+2*sqrt(fitcov$s2))
+lines(fitcov$x_new, fitcov$mean-2*sqrt(1/precs_pred), col="red")
+lines(fitcov$x_new, fitcov$mean+2*sqrt(1/precs_pred), col="red")
+# save(fitcov, file = "rda/prec_vector/new/fitcovmatvecc.rda")
