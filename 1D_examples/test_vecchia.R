@@ -1,7 +1,7 @@
 source("logl_cov.R")
 
-nmcmc <- 25000
-nburn <- 5000
+nmcmc <- 12500
+nburn <- 2500
 kth <- 2
 
 bte <- 3 # cols 3-18 are low res
@@ -12,7 +12,9 @@ if(length(args) > 0)
     eval(parse(text=args[[i]]))
 
 step <- 499
-i <- 1 # Model 1, choose from 000-111
+for (i in 111:1) {
+  
+# i <- 1 # Model 1, choose from 000-111
 pk2 <- read.table(paste0("Mira-Titan-IV-data/Mira-Titan-2021/STEP",step,"/pk_M",
                          if(i<100){"0"},if(i<10){"0"},i,"_test.dat"))
 
@@ -39,8 +41,12 @@ Y <- (Y - mean(Y))/sd(Y)
 y_avg <- (y_avg - mean(y_avg))/sd(y_avg)
 y_hi <- (y_hi - mean(y_hi))/sd(y_hi)
 
+if(i == 111){ YY <- Y; plot(log10(diag(cov(Y))))} else {YY <- rbind(YY,Y)}
+}
 # obstain sample cov mat after rescaling
 covY <- cov(Y)
+covYY <- cov(YY)
+plot(log10(diag(covYY)))
 
 # get predictions for xx and have corresponding prec info
 xx <- setdiff(seq(0,1,by=.01), x)
@@ -73,10 +79,10 @@ par(mfrow=c(1,1))
 plot(fitcov$x_new, fitcov$mean, type="l", col="blue", lwd=1.5)
 for (i in 1:nrow(Y))  lines(c(x), Y[i,])
 lines(fitcov$x_new, fitcov$mean, col="blue", lwd=1.5)
-lines(fitcov$x_new, fitcov$mean-2*sqrt(fitcov$s2_smooth), col=2, lwd=1.5)
-lines(fitcov$x_new, fitcov$mean+2*sqrt(fitcov$s2_smooth), col=2, lwd=1.5)
-lines(fitcov$x_new, fitcov$mean-2*sqrt(fitcov$s2), col=2, lwd=1.5)
-lines(fitcov$x_new, fitcov$mean+2*sqrt(fitcov$s2), col=2, lwd=1.5)
+lines(fitcov$x_new, fitcov$mean-2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)), col=2, lwd=1.5)
+lines(fitcov$x_new, fitcov$mean+2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)), col=2, lwd=1.5)
+lines(fitcov$x_new, fitcov$mean-2*sqrt(fitcov$s2*mean(fitcov$tau2)), col=2, lwd=1.5)
+lines(fitcov$x_new, fitcov$mean+2*sqrt(fitcov$s2*mean(fitcov$tau2)), col=2, lwd=1.5)
 lines(fitcov$x_new, fitcov$mean-2*sqrt(1/precs_pred), col=3, lwd=1.5)
 lines(fitcov$x_new, fitcov$mean+2*sqrt(1/precs_pred), col=3, lwd=1.5)
 legend("topright", col=c("blue",2:3), legend = c("mean","UQ", "precs (low res)"), lty=1, lwd=1.5)

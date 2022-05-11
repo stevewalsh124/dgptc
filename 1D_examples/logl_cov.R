@@ -581,11 +581,11 @@ krig_SW <- function (y, dx, d_new = NULL, d_cross = NULL, theta, g, tau2 = 1,
   out <- list()
   n <- length(y)
   if (v == 999) {
-    C <- Exp2Fun(dx, c(1, theta, 0)) + Sigma_hat + diag(x = eps, nrow = n)
+    C <- Exp2Fun(dx, c(1, theta, 0)) + g*tau2*Sigma_hat + diag(x = eps, nrow = n)
     C_cross <- Exp2Fun(d_cross, c(1, theta, 0))
   }
   else {
-    C <- MaternFun(dx, c(1, theta, 0, v)) + Sigma_hat + diag(x = eps, nrow = n)
+    C <- MaternFun(dx, c(1, theta, 0, v)) + g*tau2*Sigma_hat + diag(x = eps, nrow = n)
     C_cross <- MaternFun(d_cross, c(1, theta, 0, v))
   }
   C_inv <- invdet(C)$Mi
