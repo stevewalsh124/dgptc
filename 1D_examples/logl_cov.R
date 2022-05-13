@@ -241,9 +241,9 @@ sample_w_SW <- function (out_vec, w_t, w_t_dmat, in_dmat, g, theta_y, theta_w,
 logl_SW <- function (out_vec, in_dmat, g, theta, outer = TRUE, v, cov, tau2 = FALSE, Sigma_hat){
   n <- length(out_vec)
   if (cov == "matern") {
-    K <- MaternFun(in_dmat, c(1, theta, 0, v)) + g*Sigma_hat + diag(x = eps, nrow = n) #tau2=1, nug=tau2*g
+    K <- MaternFun(in_dmat, c(1, theta, g, v)) + Sigma_hat #+ diag(x = eps, nrow = n) #tau2=1, nug=tau2*g
   }
-  else K <- Exp2Fun(in_dmat, c(1, theta, eps)) + g*Sigma_hat + diag(x = eps, nrow = n) #tau2=1, nug=tau2*g
+  else K <- Exp2Fun(in_dmat, c(1, theta, g)) + Sigma_hat #+ diag(x = eps, nrow = n) #tau2=1, nug=tau2*g
   id <- invdet(K)
   quadterm <- t(out_vec) %*% id$Mi %*% (out_vec)
   if (outer) {

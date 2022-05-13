@@ -1,8 +1,8 @@
 source("logl_cov.R")
 
-nmcmc <- 12500
+nmcmc <- 52500
 nburn <- 2500
-kth <- 2
+kth <- 5
 
 bte <- 3 # cols 3-18 are low res
 
@@ -43,7 +43,7 @@ y_hi <- (y_hi - mean(y_hi))/sd(y_hi)
 
 if(i == 111){ YY <- Y; plot(log10(diag(cov(Y))))} else {YY <- rbind(YY,Y)}
 }
-# obstain sample cov mat after rescaling
+# obtain sample cov mat after rescaling
 covY <- cov(Y)
 covYY <- cov(YY)
 plot(log10(diag(covYY)))
@@ -59,12 +59,13 @@ precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
 #######################
 
 fitdiag <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = diag(1/precs*16*sigma2_yavg))
-plot(fitdiag)
+# plot(fitdiag)
 fitdiag <- trim_SW(fitdiag, nburn, kth)
 plot(fitdiag)
 fitdiag <- predict.dgp2_SW(object = fitdiag, xx, cores=6, precs_pred = precs_pred)
 
 zz <- fitdiag$mean-fitdiag$mean
+Yadj <- apply(Y,1,function(x){x-y_avg})
 
 par(mfrow=c(1,1))
 plot(fitdiag$x_new, zz, type="l", col="blue", lwd=1.5,
@@ -73,17 +74,19 @@ plot(fitdiag$x_new, zz, type="l", col="blue", lwd=1.5,
                     zz-2*sqrt(fitdiag$s2*mean(fitdiag$tau2)),
                     zz+2*sqrt(fitdiag$s2*mean(fitdiag$tau2)),
                     zz-2*sqrt(1/precs_pred),
-                    zz+2*sqrt(1/precs_pred))), main = "fitdiag")
+                    zz+2*sqrt(1/precs_pred), Yadj)), main = "fitdiag")
 for (i in 1:nrow(Y))  lines(c(x), Y[i,]-y_avg)
 lines(fitdiag$x_new, zz, col="blue", lwd=1.5)
-lines(fitdiag$x_new, zz-2*sqrt(fitdiag$s2_smooth*mean(fitdiag$tau2)*mean(fitdiag$g)), col=2, lwd=1.5)
-lines(fitdiag$x_new, zz+2*sqrt(fitdiag$s2_smooth*mean(fitdiag$tau2)*mean(fitdiag$g)), col=2, lwd=1.5)
-lines(fitdiag$x_new, zz-2*sqrt(fitdiag$s2*mean(fitdiag$tau2)), col=2, lwd=1.5)
-lines(fitdiag$x_new, zz+2*sqrt(fitdiag$s2*mean(fitdiag$tau2)), col=2, lwd=1.5)
+lines(fitdiag$x_new, zz-2*sqrt(fitdiag$s2_smooth), col=2, lwd=1.5)
+lines(fitdiag$x_new, zz+2*sqrt(fitdiag$s2_smooth), col=2, lwd=1.5)
+lines(fitdiag$x_new, zz-2*sqrt(fitdiag$s2), col=2, lwd=1.5)
+lines(fitdiag$x_new, zz+2*sqrt(fitdiag$s2), col=2, lwd=1.5)
 lines(fitdiag$x_new, zz-2*sqrt(1/precs_pred), col=3, lwd=1.5)
 lines(fitdiag$x_new, zz+2*sqrt(1/precs_pred), col=3, lwd=1.5)
+lines(fitdiag$x_new, zz-2*sqrt(1/(16*precs_pred)), col=3, lwd=1.5)
+lines(fitdiag$x_new, zz+2*sqrt(1/(16*precs_pred)), col=3, lwd=1.5)
 legend("topright", col=c("blue",2:3), legend = c("mean","UQ", "precs (low res)"), lty=1, lwd=1.5)
-# save(fitdiag, file = "rda/prec_vector/new/fitdiagmatvecc.rda")
+# save(fitdiag, file = "rda/corr_err/fitdiag.rda")
 
 xx <- setdiff(seq(0,1,by=.01), x)
 lmfit <- lm(log10(1/diag(covY)) ~ x) #precs for logl_g.R, 1/diag(covY) for logl_cov.R
@@ -92,7 +95,7 @@ precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
 
 
 fitcov <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = covY/(16*sigma2_yavg))#, cov = "exp2")
-plot(fitcov)
+# plot(fitcov)
 fitcov <- trim_SW(fitcov, nburn, kth)
 plot(fitcov)
 fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=6, precs_pred = precs_pred)
@@ -104,18 +107,33 @@ zz <- fitcov$mean-fitcov$mean
 
 par(mfrow=c(1,1))
 plot(fitcov$x_new, zz, type="l", col="blue", lwd=1.5, 
-     ylim = range(c(zz-2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)),
-                    zz+2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)),
-                    zz-2*sqrt(fitcov$s2*mean(fitcov$tau2)),
-                    zz+2*sqrt(fitcov$s2*mean(fitcov$tau2)),
+     ylim = range(c(zz-2*sqrt(fitcov$s2_smooth),
+                    zz+2*sqrt(fitcov$s2_smooth),
+                    zz-2*sqrt(fitcov$s2),
+                    zz+2*sqrt(fitcov$s2),
                     zz-2*sqrt(1/precs_pred),
-                    zz+2*sqrt(1/precs_pred))), main = "fitcov")
+                    zz+2*sqrt(1/precs_pred), Yadj)), main = "fitcov")
 for (i in 1:nrow(Y))  lines(c(x), Y[i,]-y_avg)
 lines(fitcov$x_new, zz, col="blue", lwd=1.5)
-lines(fitcov$x_new, zz-2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)), col=2, lwd=1.5)
-lines(fitcov$x_new, zz+2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)), col=2, lwd=1.5)
-lines(fitcov$x_new, zz-2*sqrt(fitcov$s2*mean(fitcov$tau2)), col=2, lwd=1.5)
-lines(fitcov$x_new, zz+2*sqrt(fitcov$s2*mean(fitcov$tau2)), col=2, lwd=1.5)
+lines(fitcov$x_new, zz-2*sqrt(fitcov$s2_smooth), col=2, lwd=1.5)
+lines(fitcov$x_new, zz+2*sqrt(fitcov$s2_smooth), col=2, lwd=1.5)
+lines(fitcov$x_new, zz-2*sqrt(fitcov$s2), col=2, lwd=1.5)
+lines(fitcov$x_new, zz+2*sqrt(fitcov$s2), col=2, lwd=1.5)
 lines(fitcov$x_new, zz-2*sqrt(1/precs_pred), col=3, lwd=1.5)
 lines(fitcov$x_new, zz+2*sqrt(1/precs_pred), col=3, lwd=1.5)
+lines(fitcov$x_new, zz-2*sqrt(1/(16*precs_pred)), col=3, lwd=1.5)
+lines(fitcov$x_new, zz+2*sqrt(1/(16*precs_pred)), col=3, lwd=1.5)
 legend("topright", col=c("blue",2:3), legend = c("mean","UQ", "precs (low res)"), lty=1, lwd=1.5)
+# save(fitcov, file = "rda/corr_err/fitcov.rda")
+
+# UQ for truth S by Bayes Theorem:
+# S | \bar{Y} \sim(m, C) where
+# C^{-1} = (Sigma_s(x,x'))^{-1} + 16*Sigma_epsilon^{-}
+# m = C^{-1} * 16*Sigma_epsilon^{-} \bar{Y}
+
+# In particular, using the MCMC output for the unknown parameters in Sigma_s(x,x'), 
+# we can use the distribution [S | \bar{Y}] above to simulate a sample from posterior of S. 
+
+# fitcov$theta_y
+# fitcov$tau2
+# fitcov$g
