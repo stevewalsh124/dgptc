@@ -1,8 +1,12 @@
 source("logl_cov.R")
 
-nmcmc <- 52500
+library(MASS) #ginv
+
+pdf("pdf/test_vecchia.pdf")
+
+nmcmc <- 102500
 nburn <- 2500
-kth <- 5
+kth <- 10
 
 bte <- 3 # cols 3-18 are low res
 
@@ -86,7 +90,7 @@ lines(fitdiag$x_new, zz+2*sqrt(1/precs_pred), col=3, lwd=1.5)
 lines(fitdiag$x_new, zz-2*sqrt(1/(16*precs_pred)), col=3, lwd=1.5)
 lines(fitdiag$x_new, zz+2*sqrt(1/(16*precs_pred)), col=3, lwd=1.5)
 legend("topright", col=c("blue",2:3), legend = c("mean","UQ", "precs (low res)"), lty=1, lwd=1.5)
-# save(fitdiag, file = "rda/corr_err/fitdiag.rda")
+save(fitdiag, file = paste0("rda/corr_err/fitdiag",nmcmc,".rda"))
 
 xx <- setdiff(seq(0,1,by=.01), x)
 lmfit <- lm(log10(1/diag(covY)) ~ x) #precs for logl_g.R, 1/diag(covY) for logl_cov.R
@@ -99,9 +103,6 @@ fitcov <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = covY/(16
 fitcov <- trim_SW(fitcov, nburn, kth)
 plot(fitcov)
 fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=6, precs_pred = precs_pred)
-
-lmm <- lm(y_avg ~ x)
-y_avg_e <- cbind(1,xx)%*%coefficients(lmm)
 
 zz <- fitcov$mean-fitcov$mean
 
@@ -124,16 +125,112 @@ lines(fitcov$x_new, zz+2*sqrt(1/precs_pred), col=3, lwd=1.5)
 lines(fitcov$x_new, zz-2*sqrt(1/(16*precs_pred)), col=3, lwd=1.5)
 lines(fitcov$x_new, zz+2*sqrt(1/(16*precs_pred)), col=3, lwd=1.5)
 legend("topright", col=c("blue",2:3), legend = c("mean","UQ", "precs (low res)"), lty=1, lwd=1.5)
-# save(fitcov, file = "rda/corr_err/fitcov.rda")
+save(fitcov, file = paste0("rda/corr_err/fitcov",nmcmc,".rda"))
+
 
 # UQ for truth S by Bayes Theorem:
 # S | \bar{Y} \sim(m, C) where
 # C^{-1} = (Sigma_s(x,x'))^{-1} + 16*Sigma_epsilon^{-}
-# m = C^{-1} * 16*Sigma_epsilon^{-} \bar{Y}
-
+# m = C * 16*Sigma_epsilon^{-} \bar{Y}
 # In particular, using the MCMC output for the unknown parameters in Sigma_s(x,x'), 
 # we can use the distribution [S | \bar{Y}] above to simulate a sample from posterior of S. 
 
-# fitcov$theta_y
-# fitcov$tau2
-# fitcov$g
+v <- fitcov$v
+
+# Sigma_epsilon; already adjusted by 16 and sigma2_yavg when rescaling data
+# generalized (Moore-Penrose) inverse
+S_ei <- ginv(fitcov$Sigma_hat)
+
+M <- matrix(NA, length(fitcov$x), fitcov$nmcmc)
+for (i in 1:fitcov$nmcmc){
+  if( i %% 2500 == 0) print(i)
+  theta <- fitcov$theta_y[i]
+  tau2 <- fitcov$tau2[i]
+  g <- fitcov$g[i]
+  W <- fitcov$w[[i]]
+  dw <- sq_dist(W)
+  
+  S_si <- solve(MaternFun(distmat = dw, covparms = c(tau2, theta, g, v)))
+  C <- solve(S_si + S_ei) 
+  M[,i] <- C %*% S_ei %*% fitcov$y
+  
+}
+
+m <- rowMeans(M) - y_avg
+ub <- apply(M, 1, function(x){quantile(x,0.975)}) - y_avg
+lb <- apply(M, 1, function(x){quantile(x,0.025)}) - y_avg
+
+plot(fitcov$x, fitcov$y - fitcov$y, type="l",
+     ylim = range(c(m, lb, ub, Yadj)), main = "fitcov, 16-sample cov mtx")
+
+for (i in 1:16) lines(fitcov$x, Yadj[,i], col="gray")
+lines(fitcov$x, fitcov$y - fitcov$y, lwd=1.5)
+lines(fitcov$x, m , col="blue")
+lines(fitcov$x, lb , col="blue", lty=2)
+lines(fitcov$x, ub , col="blue", lty=2)
+
+
+
+# invertible cov mtx from 111*16 low res runs
+S_ei <- solve(covYY/(16*sigma2_yavg))
+
+M <- matrix(NA, length(fitcov$x), fitcov$nmcmc)
+for (i in 1:fitcov$nmcmc){
+  if( i %% 2500 == 0) print(i)
+  theta <- fitcov$theta_y[i]
+  tau2 <- fitcov$tau2[i]
+  g <- fitcov$g[i]
+  W <- fitcov$w[[i]]
+  dw <- sq_dist(W)
+  
+  S_si <- solve(MaternFun(distmat = dw, covparms = c(tau2, theta, g, v)))
+  C <- solve(S_si + S_ei) 
+  M[,i] <- C %*% S_ei %*% fitcov$y
+}
+
+m <- rowMeans(M) - y_avg
+ub <- apply(M, 1, function(x){quantile(x,0.975)}) - y_avg
+lb <- apply(M, 1, function(x){quantile(x,0.025)}) - y_avg
+
+plot(fitcov$x, fitcov$y - fitcov$y, type="l",
+     ylim = range(c(m, lb, ub, Yadj)), main = "fitcov, 1776-sample cov mtx")
+for (i in 1:16) lines(fitcov$x, Yadj[,i], col="gray")
+lines(fitcov$x, fitcov$y - fitcov$y, lwd=1.5)
+lines(fitcov$x, m , col="blue")
+lines(fitcov$x, lb , col="blue", lty=2)
+lines(fitcov$x, ub , col="blue", lty=2)
+
+
+
+
+# Plot the diagonal case
+S_ei <- diag(16*sigma2_yavg*precs)
+
+M <- matrix(NA, length(fitdiag$x), fitdiag$nmcmc)
+for (i in 1:fitdiag$nmcmc){
+  if( i %% 2500 == 0) print(i)
+  theta <- fitdiag$theta_y[i]
+  tau2 <- fitdiag$tau2[i]
+  g <- fitdiag$g[i]
+  W <- fitdiag$w[[i]]
+  dw <- sq_dist(W)
+  
+  S_si <- solve(MaternFun(distmat = dw, covparms = c(tau2, theta, g, v)))
+  C <- solve(S_si + S_ei) 
+  M[,i] <- C %*% S_ei %*% fitdiag$y
+}
+
+m <- rowMeans(M) - y_avg
+ub <- apply(M, 1, function(x){quantile(x,0.975)}) - y_avg
+lb <- apply(M, 1, function(x){quantile(x,0.025)}) - y_avg
+
+plot(fitdiag$x, fitdiag$y - fitdiag$y, type="l",
+     ylim = range(c(Yadj, m, lb, ub)), main = "fitdiag, given prec mtx")
+
+for (i in 1:16) lines(fitdiag$x, Yadj[,i], col="gray")
+lines(fitdiag$x, fitdiag$y - fitdiag$y, lwd=1.5)
+lines(fitdiag$x, m , col="blue")
+lines(fitdiag$x, lb , col="blue", lty=2)
+lines(fitdiag$x, ub , col="blue", lty=2)
+
+dev.off()
