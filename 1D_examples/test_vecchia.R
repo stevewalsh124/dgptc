@@ -50,7 +50,7 @@ plot(log10(diag(covYY)))
 
 # get predictions for xx and have corresponding prec info
 xx <- setdiff(seq(0,1,by=.01), x)
-lmfit <- lm(log10(1/diag(covY)) ~ x) #precs for logl_g.R
+lmfit <- lm(log10(precs) ~ x) #precs for logl_g.R, 1/diag(covY) for logl_cov.R
 betahat <- coef(lmfit)
 precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
 
@@ -58,32 +58,64 @@ precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
 # run for actual data #
 #######################
 
-# fit4 <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, precs = precs*sigma2_yavg*16)
-# fit4 <- trim_SW(fit4, nburn, kth)
-# fit4 <- predict.dgp2_SW(fit4, xx, precs_pred = (precs_pred*sigma2_yavg*16), cores=2)
-# plot(fit4)
-# plot(fit4$x_new, fit4$mean, type="l", col="blue")
-# lines(fit4$x_new, fit4$mean-30*sqrt(fit4$s2_smooth))
-# lines(fit4$x_new, fit4$mean+30*sqrt(fit4$s2_smooth))
-# lines(fit4$x_new, fit4$mean-30*sqrt(fit4$s2))
-# lines(fit4$x_new, fit4$mean+30*sqrt(fit4$s2))
-# save(fit4, file = "rda/prec_vector/new/fit4mat.rda")
+fitdiag <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = diag(1/precs*16*sigma2_yavg))
+plot(fitdiag)
+fitdiag <- trim_SW(fitdiag, nburn, kth)
+plot(fitdiag)
+fitdiag <- predict.dgp2_SW(object = fitdiag, xx, cores=6, precs_pred = precs_pred)
 
-fitcov <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = covY)#, cov = "exp2")
+zz <- fitdiag$mean-fitdiag$mean
+
+par(mfrow=c(1,1))
+plot(fitdiag$x_new, zz, type="l", col="blue", lwd=1.5,
+     ylim = range(c(zz-2*sqrt(fitdiag$s2_smooth*mean(fitdiag$tau2)*mean(fitdiag$g)),
+                    zz+2*sqrt(fitdiag$s2_smooth*mean(fitdiag$tau2)*mean(fitdiag$g)),
+                    zz-2*sqrt(fitdiag$s2*mean(fitdiag$tau2)),
+                    zz+2*sqrt(fitdiag$s2*mean(fitdiag$tau2)),
+                    zz-2*sqrt(1/precs_pred),
+                    zz+2*sqrt(1/precs_pred))), main = "fitdiag")
+for (i in 1:nrow(Y))  lines(c(x), Y[i,]-y_avg)
+lines(fitdiag$x_new, zz, col="blue", lwd=1.5)
+lines(fitdiag$x_new, zz-2*sqrt(fitdiag$s2_smooth*mean(fitdiag$tau2)*mean(fitdiag$g)), col=2, lwd=1.5)
+lines(fitdiag$x_new, zz+2*sqrt(fitdiag$s2_smooth*mean(fitdiag$tau2)*mean(fitdiag$g)), col=2, lwd=1.5)
+lines(fitdiag$x_new, zz-2*sqrt(fitdiag$s2*mean(fitdiag$tau2)), col=2, lwd=1.5)
+lines(fitdiag$x_new, zz+2*sqrt(fitdiag$s2*mean(fitdiag$tau2)), col=2, lwd=1.5)
+lines(fitdiag$x_new, zz-2*sqrt(1/precs_pred), col=3, lwd=1.5)
+lines(fitdiag$x_new, zz+2*sqrt(1/precs_pred), col=3, lwd=1.5)
+legend("topright", col=c("blue",2:3), legend = c("mean","UQ", "precs (low res)"), lty=1, lwd=1.5)
+# save(fitdiag, file = "rda/prec_vector/new/fitdiagmatvecc.rda")
+
+xx <- setdiff(seq(0,1,by=.01), x)
+lmfit <- lm(log10(1/diag(covY)) ~ x) #precs for logl_g.R, 1/diag(covY) for logl_cov.R
+betahat <- coef(lmfit)
+precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
+
+
+fitcov <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = covY/(16*sigma2_yavg))#, cov = "exp2")
 plot(fitcov)
 fitcov <- trim_SW(fitcov, nburn, kth)
 plot(fitcov)
 fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=6, precs_pred = precs_pred)
 
+lmm <- lm(y_avg ~ x)
+y_avg_e <- cbind(1,xx)%*%coefficients(lmm)
+
+zz <- fitcov$mean-fitcov$mean
+
 par(mfrow=c(1,1))
-plot(fitcov$x_new, fitcov$mean, type="l", col="blue", lwd=1.5)
-for (i in 1:nrow(Y))  lines(c(x), Y[i,])
-lines(fitcov$x_new, fitcov$mean, col="blue", lwd=1.5)
-lines(fitcov$x_new, fitcov$mean-2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)), col=2, lwd=1.5)
-lines(fitcov$x_new, fitcov$mean+2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)), col=2, lwd=1.5)
-lines(fitcov$x_new, fitcov$mean-2*sqrt(fitcov$s2*mean(fitcov$tau2)), col=2, lwd=1.5)
-lines(fitcov$x_new, fitcov$mean+2*sqrt(fitcov$s2*mean(fitcov$tau2)), col=2, lwd=1.5)
-lines(fitcov$x_new, fitcov$mean-2*sqrt(1/precs_pred), col=3, lwd=1.5)
-lines(fitcov$x_new, fitcov$mean+2*sqrt(1/precs_pred), col=3, lwd=1.5)
+plot(fitcov$x_new, zz, type="l", col="blue", lwd=1.5, 
+     ylim = range(c(zz-2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)),
+                    zz+2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)),
+                    zz-2*sqrt(fitcov$s2*mean(fitcov$tau2)),
+                    zz+2*sqrt(fitcov$s2*mean(fitcov$tau2)),
+                    zz-2*sqrt(1/precs_pred),
+                    zz+2*sqrt(1/precs_pred))), main = "fitcov")
+for (i in 1:nrow(Y))  lines(c(x), Y[i,]-y_avg)
+lines(fitcov$x_new, zz, col="blue", lwd=1.5)
+lines(fitcov$x_new, zz-2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)), col=2, lwd=1.5)
+lines(fitcov$x_new, zz+2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)), col=2, lwd=1.5)
+lines(fitcov$x_new, zz-2*sqrt(fitcov$s2*mean(fitcov$tau2)), col=2, lwd=1.5)
+lines(fitcov$x_new, zz+2*sqrt(fitcov$s2*mean(fitcov$tau2)), col=2, lwd=1.5)
+lines(fitcov$x_new, zz-2*sqrt(1/precs_pred), col=3, lwd=1.5)
+lines(fitcov$x_new, zz+2*sqrt(1/precs_pred), col=3, lwd=1.5)
 legend("topright", col=c("blue",2:3), legend = c("mean","UQ", "precs (low res)"), lty=1, lwd=1.5)
-# save(fitcov, file = "rda/prec_vector/new/fitcovmatvecc.rda")

@@ -581,11 +581,11 @@ krig_SW <- function (y, dx, d_new = NULL, d_cross = NULL, theta, g, tau2 = 1,
   out <- list()
   n <- length(y)
   if (v == 999) {
-    C <- Exp2Fun(dx, c(1, theta, 0)) + g*tau2*Sigma_hat + diag(x = eps, nrow = n)
+    C <- Exp2Fun(dx, c(1, theta, g)) + Sigma_hat/tau2 #+ diag(x = eps, nrow = n)
     C_cross <- Exp2Fun(d_cross, c(1, theta, 0))
   }
   else {
-    C <- MaternFun(dx, c(1, theta, 0, v)) + g*tau2*Sigma_hat + diag(x = eps, nrow = n)
+    C <- MaternFun(dx, c(1, theta, 0, v)) + Sigma_hat/tau2 #+ diag(x = eps, nrow = n)
     C_cross <- MaternFun(d_cross, c(1, theta, 0, v))
   }
   C_inv <- invdet(C)$Mi
@@ -605,9 +605,9 @@ krig_SW <- function (y, dx, d_new = NULL, d_cross = NULL, theta, g, tau2 = 1,
   if (sigma) {
     quadterm <- C_cross %*% C_inv %*% t(C_cross)
     if (v == 999) {
-      C_new <- Exp2Fun(d_new, c(1, theta, eps)) + diag(1/precs_pred) # rm diag for E(Y(X))
+      C_new <- Exp2Fun(d_new, c(1, theta, g)) + diag(1/precs_pred)/tau2 # rm diag for E(Y(X))
     }
-    else C_new <- MaternFun(d_new, c(1, theta, 0, v)) + diag(1/precs_pred) # rm diag for E(Y|X)
+    else C_new <- MaternFun(d_new, c(1, theta, g, v)) + diag(1/precs_pred)/tau2 # rm diag for E(Y|X)
     out$sigma <- tau2 * (C_new - quadterm)
   }
   return(out)
