@@ -2,7 +2,7 @@ source("logl_cov.R")
 
 library(MASS) #ginv
 
-pdf("pdf/test_vecchia.pdf")
+pdf("pdf/uq_sim_truth.pdf")
 
 nmcmc <- 102500
 nburn <- 2500
@@ -159,6 +159,8 @@ for (i in 1:fitcov$nmcmc){
 m <- rowMeans(M) - y_avg
 ub <- apply(M, 1, function(x){quantile(x,0.975)}) - y_avg
 lb <- apply(M, 1, function(x){quantile(x,0.025)}) - y_avg
+ubb <- apply(M, 1, function(x){quantile(x,0.995)}) - y_avg
+lbb <- apply(M, 1, function(x){quantile(x,0.005)}) - y_avg
 
 plot(fitcov$x, fitcov$y - fitcov$y, type="l",
      ylim = range(c(m, lb, ub, Yadj)), main = "fitcov, 16-sample cov mtx")
@@ -168,6 +170,8 @@ lines(fitcov$x, fitcov$y - fitcov$y, lwd=1.5)
 lines(fitcov$x, m , col="blue")
 lines(fitcov$x, lb , col="blue", lty=2)
 lines(fitcov$x, ub , col="blue", lty=2)
+lines(fitcov$x, lbb , col="darkblue", lty=2)
+lines(fitcov$x, ubb , col="darkblue", lty=2)
 
 
 
@@ -191,6 +195,8 @@ for (i in 1:fitcov$nmcmc){
 m <- rowMeans(M) - y_avg
 ub <- apply(M, 1, function(x){quantile(x,0.975)}) - y_avg
 lb <- apply(M, 1, function(x){quantile(x,0.025)}) - y_avg
+ubb <- apply(M, 1, function(x){quantile(x,0.995)}) - y_avg
+lbb <- apply(M, 1, function(x){quantile(x,0.005)}) - y_avg
 
 plot(fitcov$x, fitcov$y - fitcov$y, type="l",
      ylim = range(c(m, lb, ub, Yadj)), main = "fitcov, 1776-sample cov mtx")
@@ -199,6 +205,8 @@ lines(fitcov$x, fitcov$y - fitcov$y, lwd=1.5)
 lines(fitcov$x, m , col="blue")
 lines(fitcov$x, lb , col="blue", lty=2)
 lines(fitcov$x, ub , col="blue", lty=2)
+lines(fitcov$x, lbb , col="darkblue", lty=2)
+lines(fitcov$x, ubb , col="darkblue", lty=2)
 
 
 
@@ -223,6 +231,8 @@ for (i in 1:fitdiag$nmcmc){
 m <- rowMeans(M) - y_avg
 ub <- apply(M, 1, function(x){quantile(x,0.975)}) - y_avg
 lb <- apply(M, 1, function(x){quantile(x,0.025)}) - y_avg
+ubb <- apply(M, 1, function(x){quantile(x,0.995)}) - y_avg
+lbb <- apply(M, 1, function(x){quantile(x,0.005)}) - y_avg
 
 plot(fitdiag$x, fitdiag$y - fitdiag$y, type="l",
      ylim = range(c(Yadj, m, lb, ub)), main = "fitdiag, given prec mtx")
@@ -232,5 +242,7 @@ lines(fitdiag$x, fitdiag$y - fitdiag$y, lwd=1.5)
 lines(fitdiag$x, m , col="blue")
 lines(fitdiag$x, lb , col="blue", lty=2)
 lines(fitdiag$x, ub , col="blue", lty=2)
+lines(fitdiag$x, lbb , col="darkblue", lty=2)
+lines(fitdiag$x, ubb , col="darkblue", lty=2)
 
 dev.off()
