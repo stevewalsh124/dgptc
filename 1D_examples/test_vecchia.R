@@ -6,7 +6,7 @@ pdf("pdf/uq_sim_truth.pdf")
 
 nmcmc <- 102500
 nburn <- 2500
-kth <- 10
+kth <- 5
 
 bte <- 3 # cols 3-18 are low res
 
@@ -68,7 +68,7 @@ fitdiag <- trim_SW(fitdiag, nburn, kth)
 plot(fitdiag)
 fitdiag <- predict.dgp2_SW(object = fitdiag, xx, cores=6, precs_pred = precs_pred)
 
-zz <- fitdiag$mean-fitdiag$mean
+zz <- fitdiag$mean#-fitdiag$mean
 Yadj <- apply(Y,1,function(x){x-y_avg})
 
 par(mfrow=c(1,1))
@@ -79,7 +79,7 @@ plot(fitdiag$x_new, zz, type="l", col="blue", lwd=1.5,
                     zz+2*sqrt(fitdiag$s2*mean(fitdiag$tau2)),
                     zz-2*sqrt(1/precs_pred),
                     zz+2*sqrt(1/precs_pred), Yadj)), main = "fitdiag")
-for (i in 1:nrow(Y))  lines(c(x), Y[i,]-y_avg)
+for (i in 1:nrow(Y))  lines(c(x), Y[i,])#-y_avg)
 lines(fitdiag$x_new, zz, col="blue", lwd=1.5)
 lines(fitdiag$x_new, zz-2*sqrt(fitdiag$s2_smooth), col=2, lwd=1.5)
 lines(fitdiag$x_new, zz+2*sqrt(fitdiag$s2_smooth), col=2, lwd=1.5)
@@ -104,8 +104,6 @@ fitcov <- trim_SW(fitcov, nburn, kth)
 plot(fitcov)
 fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=6, precs_pred = precs_pred)
 
-zz <- fitcov$mean-fitcov$mean
-
 par(mfrow=c(1,1))
 plot(fitcov$x_new, zz, type="l", col="blue", lwd=1.5, 
      ylim = range(c(zz-2*sqrt(fitcov$s2_smooth),
@@ -114,7 +112,7 @@ plot(fitcov$x_new, zz, type="l", col="blue", lwd=1.5,
                     zz+2*sqrt(fitcov$s2),
                     zz-2*sqrt(1/precs_pred),
                     zz+2*sqrt(1/precs_pred), Yadj)), main = "fitcov")
-for (i in 1:nrow(Y))  lines(c(x), Y[i,]-y_avg)
+for (i in 1:nrow(Y))  lines(c(x), Y[i,])#-y_avg)
 lines(fitcov$x_new, zz, col="blue", lwd=1.5)
 lines(fitcov$x_new, zz-2*sqrt(fitcov$s2_smooth), col=2, lwd=1.5)
 lines(fitcov$x_new, zz+2*sqrt(fitcov$s2_smooth), col=2, lwd=1.5)
@@ -128,6 +126,36 @@ legend("topright", col=c("blue",2:3), legend = c("mean","UQ", "precs (low res)")
 save(fitcov, file = paste0("rda/corr_err/fitcov",nmcmc,".rda"))
 
 
+fitcov_fr <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = covYY/(16*sigma2_yavg))#, cov = "exp2")
+# plot(fitcov_fr)
+fitcov_fr <- trim_SW(fitcov_fr, nburn, kth)
+plot(fitcov_fr)
+fitcov_fr <- predict.dgp2_SW(object = fitcov_fr, xx, cores=6, precs_pred = precs_pred)
+
+zz <- fitcov$mean#-fitcov$mean
+
+par(mfrow=c(1,1))
+plot(fitcov_fr$x_new, zz, type="l", col="blue", lwd=1.5, 
+     ylim = range(c(zz-2*sqrt(fitcov_fr$s2_smooth),
+                    zz+2*sqrt(fitcov_fr$s2_smooth),
+                    zz-2*sqrt(fitcov_fr$s2),
+                    zz+2*sqrt(fitcov_fr$s2),
+                    zz-2*sqrt(1/precs_pred),
+                    zz+2*sqrt(1/precs_pred), Yadj)), main = "fitcov_fr")
+for (i in 1:nrow(Y))  lines(c(x), Y[i,])#-y_avg)
+lines(fitcov_fr$x_new, zz, col="blue", lwd=1.5)
+lines(fitcov_fr$x_new, zz-2*sqrt(fitcov_fr$s2_smooth), col=2, lwd=1.5)
+lines(fitcov_fr$x_new, zz+2*sqrt(fitcov_fr$s2_smooth), col=2, lwd=1.5)
+lines(fitcov_fr$x_new, zz-2*sqrt(fitcov_fr$s2), col=2, lwd=1.5)
+lines(fitcov_fr$x_new, zz+2*sqrt(fitcov_fr$s2), col=2, lwd=1.5)
+lines(fitcov_fr$x_new, zz-2*sqrt(1/precs_pred), col=3, lwd=1.5)
+lines(fitcov_fr$x_new, zz+2*sqrt(1/precs_pred), col=3, lwd=1.5)
+lines(fitcov_fr$x_new, zz-2*sqrt(1/(16*precs_pred)), col=3, lwd=1.5)
+lines(fitcov_fr$x_new, zz+2*sqrt(1/(16*precs_pred)), col=3, lwd=1.5)
+legend("topright", col=c("blue",2:3), legend = c("mean","UQ", "precs (low res)"), lty=1, lwd=1.5)
+save(fitcov_fr, file = paste0("rda/corr_err/fitcov_fr",nmcmc,".rda"))
+
+
 # UQ for truth S by Bayes Theorem:
 # S | \bar{Y} \sim(m, C) where
 # C^{-1} = (Sigma_s(x,x'))^{-1} + 16*Sigma_epsilon^{-}
@@ -139,7 +167,9 @@ v <- fitcov$v
 
 # Sigma_epsilon; already adjusted by 16 and sigma2_yavg when rescaling data
 # generalized (Moore-Penrose) inverse
-S_ei <- ginv(fitcov$Sigma_hat)
+for (ep in c(0,1e-10,1e-8,1e-6,1e-4,1e-3,1e-2,1e-1,2e-1,5e-1,1)) {
+  
+S_ei <- ginv(fitcov$Sigma_hat + diag(rep(ep,161)))
 
 M <- matrix(NA, length(fitcov$x), fitcov$nmcmc)
 for (i in 1:fitcov$nmcmc){
@@ -163,7 +193,7 @@ ubb <- apply(M, 1, function(x){quantile(x,0.995)}) - y_avg
 lbb <- apply(M, 1, function(x){quantile(x,0.005)}) - y_avg
 
 plot(fitcov$x, fitcov$y - fitcov$y, type="l",
-     ylim = range(c(m, lb, ub, Yadj)), main = "fitcov, 16-sample cov mtx")
+     ylim = range(c(m, lb, ub, Yadj)), main = paste0("fitcov, 16-sample cov mtx (plus",ep,")"))
 
 for (i in 1:16) lines(fitcov$x, Yadj[,i], col="gray")
 lines(fitcov$x, fitcov$y - fitcov$y, lwd=1.5)
@@ -173,23 +203,91 @@ lines(fitcov$x, ub , col="blue", lty=2)
 lines(fitcov$x, lbb , col="darkblue", lty=2)
 lines(fitcov$x, ubb , col="darkblue", lty=2)
 
+m <- rowMeans(M) #- y_avg
+ub <- apply(M, 1, function(x){quantile(x,0.975)}) #- y_avg
+lb <- apply(M, 1, function(x){quantile(x,0.025)}) #- y_avg
+ubb <- apply(M, 1, function(x){quantile(x,0.995)})# - y_avg
+lbb <- apply(M, 1, function(x){quantile(x,0.005)})# - y_avg
+
+plot(fitcov$x, fitcov$y, type="l",
+     ylim = range(c(m, lb, ub, Y)), main = paste0("fitcov, 16-sample cov mtx (plus",ep,")")) #Yadj
+
+for (i in 1:16) lines(fitcov$x, Y[i,], col="gray")
+lines(fitcov$x, fitcov$y, lwd=1.5)
+lines(fitcov$x, m , col="blue")
+lines(fitcov$x, lb , col="blue", lty=2)
+lines(fitcov$x, ub , col="blue", lty=2)
+lines(fitcov$x, lbb , col="darkblue", lty=2)
+lines(fitcov$x, ubb , col="darkblue", lty=2)
+}
+
+S_ei <- matrix.Moore.Penrose(fitcov$Sigma_hat)
+
+M <- matrix(NA, length(fitcov$x), fitcov$nmcmc)
+for (i in 1:fitcov$nmcmc){
+  if( i %% 2500 == 0) print(i)
+  theta <- fitcov$theta_y[i]
+  tau2 <- fitcov$tau2[i]
+  g <- fitcov$g[i]
+  W <- fitcov$w[[i]]
+  dw <- sq_dist(W)
+  
+  S_si <- solve(MaternFun(distmat = dw, covparms = c(tau2, theta, g, v)))
+  C <- solve(S_si + S_ei) 
+  M[,i] <- C %*% S_ei %*% fitcov$y
+  
+}
+
+m <- rowMeans(M) - y_avg
+ub <- apply(M, 1, function(x){quantile(x,0.975)}) - y_avg
+lb <- apply(M, 1, function(x){quantile(x,0.025)}) - y_avg
+ubb <- apply(M, 1, function(x){quantile(x,0.995)}) - y_avg
+lbb <- apply(M, 1, function(x){quantile(x,0.005)}) - y_avg
+
+plot(fitcov$x, fitcov$y - fitcov$y, type="l",
+     ylim = range(c(m, lb, ub, Yadj)), main = "fitcov, 16-sample cov mtx (MARF)")
+
+for (i in 1:16) lines(fitcov$x, Yadj[,i], col="gray")
+lines(fitcov$x, fitcov$y - fitcov$y, lwd=1.5)
+lines(fitcov$x, m , col="blue")
+lines(fitcov$x, lb , col="blue", lty=2)
+lines(fitcov$x, ub , col="blue", lty=2)
+lines(fitcov$x, lbb , col="darkblue", lty=2)
+lines(fitcov$x, ubb , col="darkblue", lty=2)
+
+m <- rowMeans(M) #- y_avg
+ub <- apply(M, 1, function(x){quantile(x,0.975)}) #- y_avg
+lb <- apply(M, 1, function(x){quantile(x,0.025)}) #- y_avg
+ubb <- apply(M, 1, function(x){quantile(x,0.995)})# - y_avg
+lbb <- apply(M, 1, function(x){quantile(x,0.005)})# - y_avg
+
+plot(fitcov$x, fitcov$y, type="l",
+     ylim = range(c(m, lb, ub, Y)), main = "fitcov, 16-sample cov mtx (MARF)") #Yadj
+
+for (i in 1:16) lines(fitcov$x, Y[i,], col="gray")
+lines(fitcov$x, fitcov$y, lwd=1.5)
+lines(fitcov$x, m , col="blue")
+lines(fitcov$x, lb , col="blue", lty=2)
+lines(fitcov$x, ub , col="blue", lty=2)
+lines(fitcov$x, lbb , col="darkblue", lty=2)
+lines(fitcov$x, ubb , col="darkblue", lty=2)
 
 
 # invertible cov mtx from 111*16 low res runs
 S_ei <- solve(covYY/(16*sigma2_yavg))
 
-M <- matrix(NA, length(fitcov$x), fitcov$nmcmc)
-for (i in 1:fitcov$nmcmc){
+M <- matrix(NA, length(fitcov_fr$x), fitcov_fr$nmcmc)
+for (i in 1:fitcov_fr$nmcmc){
   if( i %% 2500 == 0) print(i)
-  theta <- fitcov$theta_y[i]
-  tau2 <- fitcov$tau2[i]
-  g <- fitcov$g[i]
-  W <- fitcov$w[[i]]
+  theta <- fitcov_fr$theta_y[i]
+  tau2 <- fitcov_fr$tau2[i]
+  g <- fitcov_fr$g[i]
+  W <- fitcov_fr$w[[i]]
   dw <- sq_dist(W)
   
   S_si <- solve(MaternFun(distmat = dw, covparms = c(tau2, theta, g, v)))
   C <- solve(S_si + S_ei) 
-  M[,i] <- C %*% S_ei %*% fitcov$y
+  M[,i] <- C %*% S_ei %*% fitcov_fr$y
 }
 
 m <- rowMeans(M) - y_avg
@@ -198,16 +296,32 @@ lb <- apply(M, 1, function(x){quantile(x,0.025)}) - y_avg
 ubb <- apply(M, 1, function(x){quantile(x,0.995)}) - y_avg
 lbb <- apply(M, 1, function(x){quantile(x,0.005)}) - y_avg
 
-plot(fitcov$x, fitcov$y - fitcov$y, type="l",
-     ylim = range(c(m, lb, ub, Yadj)), main = "fitcov, 1776-sample cov mtx")
-for (i in 1:16) lines(fitcov$x, Yadj[,i], col="gray")
-lines(fitcov$x, fitcov$y - fitcov$y, lwd=1.5)
-lines(fitcov$x, m , col="blue")
-lines(fitcov$x, lb , col="blue", lty=2)
-lines(fitcov$x, ub , col="blue", lty=2)
-lines(fitcov$x, lbb , col="darkblue", lty=2)
-lines(fitcov$x, ubb , col="darkblue", lty=2)
+plot(fitcov_fr$x, fitcov_fr$y - fitcov_fr$y, type="l",
+     ylim = range(c(m, lb, ub, Yadj)), main = "fitcov_fr, 1776-sample cov mtx")
+for (i in 1:16) lines(fitcov_fr$x, Yadj[,i], col="gray")
+lines(fitcov_fr$x, fitcov_fr$y - fitcov_fr$y, lwd=1.5)
+lines(fitcov_fr$x, m , col="blue")
+lines(fitcov_fr$x, lb , col="blue", lty=2)
+lines(fitcov_fr$x, ub , col="blue", lty=2)
+lines(fitcov_fr$x, lbb , col="darkblue", lty=2)
+lines(fitcov_fr$x, ubb , col="darkblue", lty=2)
 
+m <- rowMeans(M) #- y_avg
+ub <- apply(M, 1, function(x){quantile(x,0.975)}) #- y_avg
+lb <- apply(M, 1, function(x){quantile(x,0.025)}) #- y_avg
+ubb <- apply(M, 1, function(x){quantile(x,0.995)})# - y_avg
+lbb <- apply(M, 1, function(x){quantile(x,0.005)})# - y_avg
+
+plot(fitcov_fr$x, fitcov_fr$y, type="l",
+     ylim = range(c(m, lb, ub, Y)), main = "fitcov_fr, 1776-sample cov mtx") #Yadj
+
+for (i in 1:16) lines(fitcov_fr$x, Y[i,], col="gray")
+lines(fitcov_fr$x, fitcov_fr$y, lwd=1.5)
+lines(fitcov_fr$x, m , col="blue")
+lines(fitcov_fr$x, lb , col="blue", lty=2)
+lines(fitcov_fr$x, ub , col="blue", lty=2)
+lines(fitcov_fr$x, lbb , col="darkblue", lty=2)
+lines(fitcov_fr$x, ubb , col="darkblue", lty=2)
 
 
 
@@ -239,6 +353,23 @@ plot(fitdiag$x, fitdiag$y - fitdiag$y, type="l",
 
 for (i in 1:16) lines(fitdiag$x, Yadj[,i], col="gray")
 lines(fitdiag$x, fitdiag$y - fitdiag$y, lwd=1.5)
+lines(fitdiag$x, m , col="blue")
+lines(fitdiag$x, lb , col="blue", lty=2)
+lines(fitdiag$x, ub , col="blue", lty=2)
+lines(fitdiag$x, lbb , col="darkblue", lty=2)
+lines(fitdiag$x, ubb , col="darkblue", lty=2)
+
+m <- rowMeans(M) #- y_avg
+ub <- apply(M, 1, function(x){quantile(x,0.975)}) #- y_avg
+lb <- apply(M, 1, function(x){quantile(x,0.025)}) #- y_avg
+ubb <- apply(M, 1, function(x){quantile(x,0.995)})# - y_avg
+lbb <- apply(M, 1, function(x){quantile(x,0.005)})# - y_avg
+
+plot(fitdiag$x, fitdiag$y, type="l",
+     ylim = range(c(m, lb, ub, Y)), main = "fitdiag, given prec mtx") #Yadj
+
+for (i in 1:16) lines(fitdiag$x, Y[i,], col="gray")
+lines(fitdiag$x, fitdiag$y, lwd=1.5)
 lines(fitdiag$x, m , col="blue")
 lines(fitdiag$x, lb , col="blue", lty=2)
 lines(fitdiag$x, ub , col="blue", lty=2)
