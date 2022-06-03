@@ -13,14 +13,25 @@ library(MASS) #ginv
 library(fields) #image.plot
 library(mvtnorm) #rmvnorm
 
-do_diag <- T
+# Should the true error's cov mtx be diagonal or dense?
+true_diag <- F
+# Use the true covariance matrix for sigma hat?
+use_true_cov <- F
+# Taper the covariance matrix?
+taper_cov <- T
+
+cov_fn <- "matern"#"exp2"#
 
 nrun <- 16
-nmcmc <- 10000
-nburn <- 1000
+nmcmc <- 1000
+nburn <- 100
 kth <- 2
 
-pdf(paste0("pdf/simstudy_",nmcmc,"_",nrun,if(one_layer){"_1L"},".pdf"))
+pdf(paste0("pdf/simstudy_",nmcmc,"_",nrun,
+           if(true_diag){"_TD"},
+           if(use_true_cov){"_UTC"},
+           if(taper_cov){"_tpr"},
+           if(one_layer){"_1L"},"_",cov_fn,".pdf"))
 
 bte <- 3 # cols 3-18 are low res
 
@@ -60,9 +71,14 @@ plot(ytrue, type="l", main = "true y")
 
 # generate 16 low res runs with iid noise (to start)
 # Gaussian cov fn with theta=1, tau2=1
-Sig_mat <- exp(-plgp:::distance(x/.05)) + diag(sqrt(.Machine$double.eps),length(x)) 
-A <- diag(5000/precs^0.8)
-Cov_true <- A %*% Sig_mat %*% A
+if(true_diag){
+  Cov_true <- diag(5000/precs^0.8)
+} else {
+  Sig_mat <- exp(-plgp:::distance(x/.05)) + diag(sqrt(.Machine$double.eps),length(x)) 
+  A <- diag(5000/precs^0.8)
+  Cov_true <- A %*% Sig_mat %*% A
+}
+
 Y_sim <- mvtnorm::rmvnorm(n = nrun, mean = ytrue, sigma = Cov_true, method = "eigen")
 
 matplot(x, t(Y_sim), type = "l", col="gray", main = "true vs estimated curve")
@@ -76,52 +92,69 @@ xx <- setdiff(seq(0,1,by=.01), x)
 lmfit <- lm(log10(precs) ~ x) #precs for logl_g.R, 1/diag(covY) for logl_cov.R
 betahat <- coef(lmfit)
 precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
-Sig_mat_p <- exp(-plgp:::distance(xx/.05)) + diag(sqrt(.Machine$double.eps),length(xx)) 
-Ap <- diag(5000/precs_pred^0.8)
-Cov_true_pred <- Ap %*% Sig_mat_p %*% Ap
+if(true_diag){
+  Sig_mat_p <- exp(-plgp:::distance(xx/.05)) + diag(sqrt(.Machine$double.eps),length(xx)) 
+  Ap <- diag(5000/precs_pred^0.8)
+  Cov_true_pred <- Ap %*% Sig_mat_p %*% Ap
+} else {
+  Cov_true_pred <- diag(5000/precs_pred^0.8)
+}
 
 # get sigma hat
-Sigma_hat <- cov(Y_sim)
+if(use_true_cov) {
+  Sigma_hat <- Cov_true
+} else {
+  Sigma_hat <- cov(Y_sim)
+}
+
+if(taper_cov){
+  Sigma_taper <- matrix(0, nrow(Sigma_hat), ncol(Sigma_hat))
+  for (i in 1:nrow(Sigma_hat)) {
+    for (j in (i-5):(i+5)) {
+      if(j <= 0 || j > nrow(Sigma_hat)) next
+      Sigma_taper[i,j] <- Sigma_hat[i,j]
+    }
+  }
+  Sigma_hat <- Sigma_taper
+}
 
 par(mfrow=c(1,2))
 image.plot(Cov_true, main = "Cov_true", zlim = range(c(Cov_true,Sigma_hat)))
-image.plot(Sigma_hat, main = "sigma_hat", zlim = range(c(Cov_true,Sigma_hat)))
+image.plot(Sigma_hat, main = "input as sigma_hat", zlim = range(c(Cov_true,Sigma_hat)))
 
 ####################
 # run for sim data #
 ####################
 
-if(do_diag){
-  fitcov <- fit_two_layer_SW(x = x, y = colMeans(Y_sim), nmcmc = nmcmc, Sigma_hat = Sigma_hat/nrun)
-  # plot(fitcov)
-  fitcov <- trim_SW(fitcov, nburn, kth)
-  plot(fitcov)
-  fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=2, precs_pred = 1/diag(Cov_true_pred))
-  
-  zz <- fitcov$mean#-fitcov$mean
-  
-  par(mfrow=c(1,1))
-  plot(fitcov$x_new, zz, type="l", col="blue", lwd=1.5,
-       ylim = range(c(#zz-2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)),
-                      #zz+2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)),
-                      zz-2*sqrt(fitcov$s2*mean(fitcov$tau2)),
-                      zz+2*sqrt(fitcov$s2*mean(fitcov$tau2)),
-                      zz-2*sqrt(1/precs_pred),
-                      zz+2*sqrt(1/precs_pred), Y_sim)), main = "fitcov")
-  for (i in 1:nrow(Y_sim))  lines(c(x), Y_sim[i,], col="gray")#-y_avg)
-  lines(fitcov$x_new, zz, col="blue", lwd=1.5)
-  lines(fitcov$x_new, zz-2*sqrt(fitcov$s2_smooth), col=2, lwd=1.5)
-  lines(fitcov$x_new, zz+2*sqrt(fitcov$s2_smooth), col=2, lwd=1.5)
-  lines(fitcov$x_new, zz-2*sqrt(fitcov$s2), col=2, lwd=1.5)
-  lines(fitcov$x_new, zz+2*sqrt(fitcov$s2), col=2, lwd=1.5)
-  lines(fitcov$x_new, zz-2*sqrt(1/precs_pred), col=3, lwd=1.5)
-  lines(fitcov$x_new, zz+2*sqrt(1/precs_pred), col=3, lwd=1.5)
-  lines(fitcov$x_new, zz-2*sqrt(1/(nrun*precs_pred)), col=3, lwd=1.5)
-  lines(fitcov$x_new, zz+2*sqrt(1/(nrun*precs_pred)), col=3, lwd=1.5)
-  legend("topright", col=c("blue",2:3), legend = c("mean","UQ", "precs (low res)"), lty=1, lwd=1.5)
-  # save(fitcov, file = paste0("rda/sim/fitcov",nmcmc,if(one_layer){"_1L"},"_lm.rda"))
-}
+fitcov <- fit_two_layer_SW(x = x, y = colMeans(Y_sim), nmcmc = nmcmc, 
+                           Sigma_hat = Sigma_hat/nrun, cov = cov_fn)
+# plot(fitcov)
+fitcov <- trim_SW(fitcov, nburn, kth)
+plot(fitcov)
+fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=2, precs_pred = 1/diag(Cov_true_pred))
 
+zz <- fitcov$mean#-fitcov$mean
+
+par(mfrow=c(1,1))
+plot(fitcov$x_new, zz, type="l", col="blue", lwd=1.5,
+     ylim = range(c(#zz-2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)),
+                    #zz+2*sqrt(fitcov$s2_smooth*mean(fitcov$tau2)*mean(fitcov$g)),
+                    zz-2*sqrt(fitcov$s2*mean(fitcov$tau2)),
+                    zz+2*sqrt(fitcov$s2*mean(fitcov$tau2)),
+                    zz-2*sqrt(1/precs_pred),
+                    zz+2*sqrt(1/precs_pred), Y_sim)), main = "fitcov")
+for (i in 1:nrow(Y_sim))  lines(c(x), Y_sim[i,], col="gray")#-y_avg)
+lines(fitcov$x_new, zz, col="blue", lwd=1.5)
+lines(fitcov$x_new, zz-2*sqrt(fitcov$s2_smooth), col=2, lwd=1.5)
+lines(fitcov$x_new, zz+2*sqrt(fitcov$s2_smooth), col=2, lwd=1.5)
+lines(fitcov$x_new, zz-2*sqrt(fitcov$s2), col=2, lwd=1.5)
+lines(fitcov$x_new, zz+2*sqrt(fitcov$s2), col=2, lwd=1.5)
+lines(fitcov$x_new, zz-2*sqrt(1/precs_pred), col=3, lwd=1.5)
+lines(fitcov$x_new, zz+2*sqrt(1/precs_pred), col=3, lwd=1.5)
+lines(fitcov$x_new, zz-2*sqrt(1/(nrun*precs_pred)), col=3, lwd=1.5)
+lines(fitcov$x_new, zz+2*sqrt(1/(nrun*precs_pred)), col=3, lwd=1.5)
+legend("topright", col=c("blue",2:3), legend = c("mean","UQ", "precs (low res)"), lty=1, lwd=1.5)
+# save(fitcov, file = paste0("rda/sim/fitcov",nmcmc,if(one_layer){"_1L"},"_lm.rda"))
 
 v <- fitcov$v
 
@@ -129,7 +162,7 @@ v <- fitcov$v
 # generalized (Moore-Penrose) inverse
 # for (ep in c(0,1e-10,1e-5,1e-1)) {
 
-S_ei <- matrix.Moore.Penrose(fitcov$Sigma_hat)# + diag(rep(ep,161)))
+S_ei <- matrix.Moore.Penrose(fitcov$Sigma_hat)# + diag(rep(1e-7,161)))
 S_ei <- (S_ei+t(S_ei))/2
 
 Cs <- matrix(NA, length(fitcov$x)^2, fitcov$nmcmc)
@@ -142,8 +175,11 @@ for (i in 1:fitcov$nmcmc){
   g <- fitcov$g[i]
   W <- fitcov$w[[i]]
   dw <- sq_dist(W)
-  
-  S_si <- solve(MaternFun(distmat = dw, covparms = c(1, theta, g, v))) #1/tau2 * 
+  if(v==999){
+    S_si <- solve(Exp2Fun(distmat = dw, covparms = c(1, theta, g))) #1/tau2 * 
+  } else {
+    S_si <- solve(MaternFun(distmat = dw, covparms = c(1, theta, g, v))) #1/tau2 * 
+  }
   S_si <- (S_si+t(S_si))/2
   C <- Cs[,i] <- solve(S_si + S_ei)
   C <- (C+t(C))/2
