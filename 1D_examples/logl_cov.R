@@ -238,7 +238,7 @@ sample_w_SW <- function (out_vec, w_t, w_t_dmat, in_dmat, g, theta_y, theta_w,
 
 # change the log likelihood evaluation
 # MaternFun, Exp2Fun: didn't change these, just add the diagonal outside of C code
-logl_SW <- function (out_vec, in_dmat, g, theta, outer = TRUE, v, cov, tau2 = FALSE, Sigma_hat){
+logl_SW <- function (out_vec, in_dmat, g, theta, outer = FALSE, v, cov, tau2 = FALSE, Sigma_hat){
   n <- length(out_vec)
   if (cov == "matern") {
     K <- MaternFun(in_dmat, c(1, theta, g, v)) + Sigma_hat #+ diag(x = eps, nrow = n) #tau2=1, nug=tau2*g
@@ -251,7 +251,7 @@ logl_SW <- function (out_vec, in_dmat, g, theta, outer = TRUE, v, cov, tau2 = FA
   }
   else logl <- (-0.5) * id$ldet - 0.5 * quadterm
   if (tau2) {
-    tau2 <- c(quadterm)/n
+    tau2 <- 1#c(quadterm)/n
   }
   else tau2 <- NULL
   return(list(logl = c(logl), tau2 = tau2))
@@ -400,7 +400,7 @@ sample_w_vec_SW <- function (y, w_approx, x_approx, g, theta_y, theta_w, ll_prev
   return(list(w_approx = w_approx, ll = ll_prev))
 }
 
-logl_vec_SW <- function (out_vec, approx, g, theta, outer = TRUE, v, tau2 = FALSE, Sigma_hat) {
+logl_vec_SW <- function (out_vec, approx, g, theta, outer = FALSE, v, tau2 = FALSE, Sigma_hat) {
   n <- length(out_vec)
   out_vec_ord <- out_vec[approx$ord]
   U_mat <- create_U_SW(approx, g, theta, v, Sigma_hat)
@@ -414,7 +414,7 @@ logl_vec_SW <- function (out_vec, approx, g, theta, outer = TRUE, v, tau2 = FALS
     logl <- logdet - 0.5 * ytUUty
   }
   if (tau2) {
-    tau2 <- c(ytUUty)/n
+    tau2 <- 1#c(ytUUty)/n
   }
   else tau2 <- NULL
   return(list(logl = logl, tau2 = tau2))
