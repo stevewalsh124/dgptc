@@ -19,7 +19,13 @@ gibbs_two_layer <- deepgp:::gibbs_two_layer
 gibbs_two_layer_vec <- deepgp:::gibbs_two_layer_vec
 MaternFun <- deepgp:::MaternFun
 Exp2Fun <- deepgp:::Exp2Fun
-invdet <- deepgp:::invdet
+invdet <- function (M){
+  n <- nrow(M)
+  out <- .C("inv_det_R", n = as.integer(n), M = as.double(M), 
+            Mi = as.double(diag(n)), ldet = double(1))
+  if(is.nan(out$ldet)) out$ldet <- c(determinant(M, logarithm = TRUE)$modulus)
+  return(list(Mi = matrix(out$Mi, ncol = n), ldet = out$ldet))
+}
 sample_theta <- deepgp:::sample_theta
 sample_theta_vec <- deepgp:::sample_theta_vec
 eps <- sqrt(.Machine$double.eps)
