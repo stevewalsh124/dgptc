@@ -23,15 +23,14 @@ use_true_cov <- F
 taper_cov <- F
 
 seed <- 1
-for (seed in 1:5) {
-  
+for (seed in 1:10) {
 
 cov_fn <- "matern"#"exp2"#
 
 nrun <- 16
-nmcmc <- 55000
-nburn <- 5000
-kth <- 5
+nmcmc <- 22500
+nburn <- 2500
+kth <- 4
 
 pdf(paste0("pdf/simstudydgpact_",nmcmc,"_",nrun,
            if(true_diag){"_TD"},
@@ -376,8 +375,12 @@ lb <- apply(true_samp, 1, function(x){quantile(x,0.025)}) #- y_avg
 ubb <- apply(true_samp, 1, function(x){quantile(x,0.995)}) #- y_avg
 lbb <- apply(true_samp, 1, function(x){quantile(x,0.005)}) #- y_avg
 
+emp_cover <- round(mean(ytrue > lb & ytrue < ub),3)
+emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
+
 plot(fitcov$x, fitcov$y, type="n",ylim = range(c(m, lb, ub, lbb, ubb, Y_sim)), 
-     main = paste0("fitcov, ",nrun,"-samples, \nboth mtxs true"))
+     main = paste0("fitcov, ",nrun,"-samples, \nboth mtxs true\n",
+                   emp_cover, " ", emp_cover99))
 
 for (i in 1:nrun) lines(fitcov$x, Y_sim[i,], col="gray")
 lines(fitcov$x, ytrue, lwd=1.5, col="red")
@@ -431,8 +434,12 @@ lb <- apply(Ss, 1, function(x){quantile(x,0.025)}) #- y_avg
 ubb <- apply(Ss, 1, function(x){quantile(x,0.995)}) #- y_avg
 lbb <- apply(Ss, 1, function(x){quantile(x,0.005)}) #- y_avg
 
+emp_cover <- round(mean(ytrue > lb & ytrue < ub),3)
+emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
+
 plot(fitcov$x, fitcov$y, type="n",
-     ylim = range(c(m, lb, ub, lbb, ubb, Y_sim)), main = paste0("est both, taper error w bohman"))
+     ylim = range(c(m, lb, ub, lbb, ubb, Y_sim)), main = paste0("est both, taper error w bohman\n",
+                                                                emp_cover, " ", emp_cover99))
 
 for (i in 1:nrun) lines(fitcov$x, Y_sim[i,], col="gray")
 lines(fitcov$x, ytrue, lwd=1.5, col="red")
