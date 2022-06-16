@@ -28,7 +28,7 @@ for (seed in 1:10) {
 cov_fn <- "matern"#"exp2"#
 
 nrun <- 16
-nmcmc <- 22500
+nmcmc <- 22504
 nburn <- 2500
 kth <- 4
 
@@ -398,59 +398,62 @@ bohman <- function(t, tau = 0.25){
   boh <- ifelse(t>=tau, 0, boh)
 }
 
-S_e <- Sigma_hat/nrun * bohman(plgp:::distance(x), tau=0.1)
-S_ei <- matrix.Moore.Penrose2(S_e)
-S_ei <- (S_ei+t(S_ei))/2
-
-Cs <- matrix(NA, length(fitcov$x)^2, fitcov$nmcmc)
-Ss <- St <- Sw <- Sx <- Ms <- matrix(NA, length(fitcov$x), fitcov$nmcmc)
-for (i in 1:fitcov$nmcmc){
-  if( i %% 2500 == 0) print(i)
-  theta <- fitcov$theta_y[i]
-  # tau2 <- fitcov$tau2[i]
-  # t2S_ei <- 1/tau2 * S_ei
-  g <- fitcov$g[i]
-  W <- fitcov$w[[i]]
-  dw <- sq_dist(W)
-  if(v==999){
-    S_si <- solve(Exp2Fun(distmat = dw, covparms = c(1, theta, g))) #1/tau2 * 
-  } else {
-    S_si <- solve(MaternFun(distmat = dw, covparms = c(1, theta, g, v))) #1/tau2 * 
+for (tau_b in c((1:9)/10,1:10,10*(2:10))/100) {
+  S_e <- Sigma_hat/nrun * bohman(plgp:::distance(x), tau=tau_b)
+  S_ei <- matrix.Moore.Penrose2(S_e)
+  S_ei <- (S_ei+t(S_ei))/2
+  
+  Cs <- matrix(NA, length(fitcov$x)^2, fitcov$nmcmc)
+  Ss <- St <- Sw <- Sx <- Ms <- matrix(NA, length(fitcov$x), fitcov$nmcmc)
+  for (i in 1:fitcov$nmcmc){
+    if( i %% 2500 == 0) print(i)
+    theta <- fitcov$theta_y[i]
+    # tau2 <- fitcov$tau2[i]
+    # t2S_ei <- 1/tau2 * S_ei
+    g <- fitcov$g[i]
+    W <- fitcov$w[[i]]
+    dw <- sq_dist(W)
+    if(v==999){
+      S_si <- solve(Exp2Fun(distmat = dw, covparms = c(1, theta, g))) #1/tau2 * 
+    } else {
+      S_si <- solve(MaternFun(distmat = dw, covparms = c(1, theta, g, v))) #1/tau2 * 
+    }
+    S_si <- (S_si+t(S_si))/2
+    C <- Cs[,i] <- solve(S_si + S_ei)
+    C <- (C+t(C))/2
+    M <- Ms[,i] <- C %*% S_ei %*% fitcov$y
+    if(i %% 1000 ==0) print(range(M))
+    Ss[,i] <- M + matrix.sqrt(C)%*%rnorm(length(fitcov$y))
+    # St[,i] <- mvtnorm::rmvnorm(n = 1, mean = M, sigma = C, method = "eigen")
+    Sw[,i] <- mvtnorm::rmvnorm(n = 1, mean = M, sigma = C, method = "svd")
+    # Sx[,i] <- mvtnorm::rmvnorm(n = 1, mean = M, sigma = C, method = "chol")
   }
-  S_si <- (S_si+t(S_si))/2
-  C <- Cs[,i] <- solve(S_si + S_ei)
-  C <- (C+t(C))/2
-  M <- Ms[,i] <- C %*% S_ei %*% fitcov$y
-  if(i %% 1000 ==0) print(range(M))
-  Ss[,i] <- M + matrix.sqrt(C)%*%rnorm(length(fitcov$y))
-  # St[,i] <- mvtnorm::rmvnorm(n = 1, mean = M, sigma = C, method = "eigen")
-  Sw[,i] <- mvtnorm::rmvnorm(n = 1, mean = M, sigma = C, method = "svd")
-  # Sx[,i] <- mvtnorm::rmvnorm(n = 1, mean = M, sigma = C, method = "chol")
+  
+  m <- rowMeans(Ss) #- y_avg
+  ub <- apply(Ss, 1, function(x){quantile(x,0.975)}) #- y_avg
+  lb <- apply(Ss, 1, function(x){quantile(x,0.025)}) #- y_avg
+  ubb <- apply(Ss, 1, function(x){quantile(x,0.995)}) #- y_avg
+  lbb <- apply(Ss, 1, function(x){quantile(x,0.005)}) #- y_avg
+  
+  emp_cover <- round(mean(ytrue > lb & ytrue < ub),3)
+  emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
+  
+  plot(fitcov$x, fitcov$y, type="n",
+       ylim = range(c(m, lb, ub, lbb, ubb, Y_sim)), main = paste0("est both, taper error w bohman\n",
+                                                                  tau_b,"=tau\n",
+                                                                  emp_cover, " ", emp_cover99))
+  
+  for (i in 1:nrun) lines(fitcov$x, Y_sim[i,], col="gray")
+  lines(fitcov$x, ytrue, lwd=1.5, col="red")
+  lines(fitcov$x, fitcov$y, lwd=1.5, lty=2)
+  lines(fitcov$x, m , col="blue")
+  lines(fitcov$x, lb , col="blue", lty=2)
+  lines(fitcov$x, ub , col="blue", lty=2)
+  lines(fitcov$x, lbb , col="darkblue", lty=2)
+  lines(fitcov$x, ubb , col="darkblue", lty=2)
+  legend("bottomright", legend = c("true", "sample avg", "UQ"), 
+         col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
 }
-
-m <- rowMeans(Ss) #- y_avg
-ub <- apply(Ss, 1, function(x){quantile(x,0.975)}) #- y_avg
-lb <- apply(Ss, 1, function(x){quantile(x,0.025)}) #- y_avg
-ubb <- apply(Ss, 1, function(x){quantile(x,0.995)}) #- y_avg
-lbb <- apply(Ss, 1, function(x){quantile(x,0.005)}) #- y_avg
-
-emp_cover <- round(mean(ytrue > lb & ytrue < ub),3)
-emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
-
-plot(fitcov$x, fitcov$y, type="n",
-     ylim = range(c(m, lb, ub, lbb, ubb, Y_sim)), main = paste0("est both, taper error w bohman\n",
-                                                                emp_cover, " ", emp_cover99))
-
-for (i in 1:nrun) lines(fitcov$x, Y_sim[i,], col="gray")
-lines(fitcov$x, ytrue, lwd=1.5, col="red")
-lines(fitcov$x, fitcov$y, lwd=1.5, lty=2)
-lines(fitcov$x, m , col="blue")
-lines(fitcov$x, lb , col="blue", lty=2)
-lines(fitcov$x, ub , col="blue", lty=2)
-lines(fitcov$x, lbb , col="darkblue", lty=2)
-lines(fitcov$x, ubb , col="darkblue", lty=2)
-legend("bottomright", legend = c("true", "sample avg", "UQ"), 
-       col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
 
 if(!one_layer) plot.warp(fitcov)
 
