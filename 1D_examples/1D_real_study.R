@@ -15,14 +15,17 @@ library(fields) #image.plot
 library(mvtnorm) #rmvnorm
 library(plgp) #distance (which is squared distances)
 
-# Taper the covariance matrix?
-taper_cov <- T
+# Taper the covariance matrix before the MCMC fit?
+taper_cov <- F
 
 # Do a kriging step?
 krig <- F
 
-ncores <- 6
-seed <- 1
+# Use hi res in Ybar calculation?
+use_hi <- F
+
+ncores <- 2
+tolpower <- -10
 
 bohman <- function(t, tau = 0.25){
   boh <- (1-t/tau)*cos(pi*t/tau)+sin(pi*t/tau)/pi
@@ -31,7 +34,7 @@ bohman <- function(t, tau = 0.25){
 
 cov_fn <- "matern"#"exp2"#
 
-tau_b <- 0.1
+tau_b <- .1
 nrun <- 16
 nmcmc <- 7500
 nburn <- 1500
@@ -46,7 +49,8 @@ if(length(args) > 0)
 
 pdf(paste0("pdf/realstudydgpact_",nmcmc,"_",nrun,"_",
            if(taper_cov){paste0("tpr")},tau_b,
-           if(one_layer){"_1L"},"_",cov_fn,"_",seed,".pdf"))
+           if(use_hi){"_uh"},
+           if(one_layer){"_1L"},"_",cov_fn,tolpower,".pdf"))
 
 step <- 499
 
@@ -65,11 +69,20 @@ Y <- t(apply(t(log10(pk2[index_list$lowres.ix,3:18])),1,function(x){x-temp_lm}))
 # wavenumber is X, a particular lowres run in Y
 x <- log10(k[index_list$lowres.ix])
 y <- log10(pk2[index_list$lowres.ix, bte]) - temp_lm
-y_avg <- rowMeans(log10(pk2[index_list$lowres.ix, 3:18]) - temp_lm)
+y_lra <- rowMeans(log10(pk2[index_list$lowres.ix, 3:18]) - temp_lm)
 y_hi <- log10(pk2[index_list$lowres.ix, 19]) - temp_lm
 
 # hi res precs on the low res index (for comparison)
 precs_hi <- prec_highres[index_list$lowres.ix]
+if(use_hi){
+  # Weighted average of low res runs and 
+  hi_wt <- unique(prec_highres/prec_lowres)[1]
+  y_avg <- (hi_wt*y_hi+nrun*y_lra)/(hi_wt+nrun)
+  nrunn <- nrun + hi_wt
+} else {
+  y_avg <- y_lra
+  nrunn <- nrun
+}
 
 # wavenumber is X, a particular lowres run in Y
 mean_sz <- mean(y_avg)
@@ -81,11 +94,13 @@ y_avg <- (y_avg - mean_sz)/sd_sz
 y_hi <- (y_hi - mean_sz)/sd_sz
 for (i in 1:nrow(Y)) { Y[i,] <- (Y[i,] - mean_sz)/sd_sz  }
 
-# get predictions for xx and have corresponding prec info
-xx <- setdiff(seq(0,1,by=.01), x)
-lmfit <- lm(log10(precs) ~ x) #precs for logl_g.R, 1/diag(covY) for logl_cov.R
-betahat <- coef(lmfit)
-precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
+if(krig){
+  # get predictions for xx and have corresponding prec info
+  xx <- setdiff(seq(0,1,by=.01), x)
+  lmfit <- lm(log10(precs) ~ x) #precs for logl_g.R, 1/diag(covY) for logl_cov.R
+  betahat <- coef(lmfit)
+  precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
+}
 
 Sigma_hat <- cov(Y)
 
@@ -95,13 +110,13 @@ par(mfrow=c(1,2))
 matplot(x,t(Y),type="l")
 lines(x,y_avg,col="red",lwd=2)
 lines(x,y_hi,col="yellow",lwd=2)
-image.plot(Sigma_hat/nrun, main = "input as sigma_hat")
+image.plot(Sigma_hat/nrunn, main = "input as sigma_hat")
 
 ####################
 # run for sim data #
 ####################
 
-fitcov <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = Sigma_hat/nrun, cov = cov_fn)
+fitcov <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = Sigma_hat/nrunn, cov = cov_fn)
 # plot(fitcov)
 fitcov <- trim_SW(fitcov, nburn, kth)
 plot(fitcov)
@@ -115,6 +130,7 @@ if(krig) {
   par(mfrow=c(1,1))
   plot.krig(fitcov)
 }
+
 v <- fitcov$v
 
 par(mfrow=c(1,2))
