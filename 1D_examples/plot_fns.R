@@ -103,6 +103,8 @@ plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = parent.frame(
   ubb <- apply(Ss, 1, function(x){quantile(x,0.995)}) #- y_avg
   lbb <- apply(Ss, 1, function(x){quantile(x,0.005)}) #- y_avg
   
+  if(exists("ytrue")) write.csv(logs_sample(y = y_avg_true, dat = Ss), file = paste0("csv/logS/notap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  
   if(exists("y_hi")) emp_cover <- round(mean(y_hi > lb & y_hi < ub),3)
   if(exists("y_hi")) emp_cover99 <- round(mean(y_hi > lbb & y_hi < ubb),3)
   
@@ -181,6 +183,8 @@ plot.true.tau <- function(fit, S_e = fit$Sigma_hat, tolpower = parent.frame()$to
     # Sw[,i] <- mvtnorm::rmvnorm(n = 1, mean = M, sigma = C, method = "svd")
     # Sx[,i] <- mvtnorm::rmvnorm(n = 1, mean = M, sigma = C, method = "chol")
   }
+  
+  if(exists("ytrue")) write.csv(logs_sample(y = y_avg_true, dat = Ss), file = paste0("csv/logS/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
   
   m <- rowMeans(Ss) #- y_avg
   ub <- apply(Ss, 1, function(x){quantile(x,0.975)}) #- y_avg
