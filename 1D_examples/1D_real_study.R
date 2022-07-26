@@ -91,6 +91,7 @@ x <- log10(k[index_list$lowres.ix])
 x <- (x - min(x))/(max(x)-min(x))
 y <- (y - mean_sz)/sd_sz
 y_avg <- (y_avg - mean_sz)/sd_sz
+y_lra <- (y_lra - mean_sz)/sd_sz
 y_hi <- (y_hi - mean_sz)/sd_sz
 for (i in 1:nrow(Y)) { Y[i,] <- (Y[i,] - mean_sz)/sd_sz  }
 
@@ -102,7 +103,20 @@ if(krig){
   precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
 }
 
-Sigma_hat <- cov(Y)
+if(use_hi){
+  n <- ncol(Y)
+  r <- nrow(Y)
+  # Ybar <- (r*y_lra+hi_wt*y_hi)/(r+hi_wt); same as y_avg above
+  
+  sum_YYt <- matrix(0, n, n)
+  for (i in 1:r) { sum_YYt <- sum_YYt + (Y[i,]-y_avg)%*%t(Y[i,]-y_avg) }
+  sum_YYt <- sum_YYt + hi_wt*(y_hi-y_avg)%*%t(y_hi-y_avg)
+  # image.plot(cov(Y), zlim = range(c(cov(Y),1/(r+hi_wt-1)*sum_YYt)))
+  # image.plot(1/(r+hi_wt-1)*sum_YYt, zlim = range(c(cov(Y),1/(r+hi_wt-1)*sum_YYt)))  
+  Sigma_hat <- 1/(r+hi_wt-1) * sum_YYt
+} else {
+  Sigma_hat <- cov(Y)
+}
 
 if(taper_cov) Sigma_hat <- Sigma_hat * bohman(plgp:::distance(x), tau=tau_b)
 

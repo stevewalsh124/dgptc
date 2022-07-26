@@ -1,3 +1,5 @@
+library(scoringRules)
+
 plot.warp <- function(fit, wl = 1, wh = length(fit$x), ref.scale = 1){
   x <- fit$x
   
@@ -112,12 +114,11 @@ plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = parent.frame(
   if(exists("ytrue")) emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
   if(exists("ytrue")) write.csv(mean((m-ytrue)^2), file = paste0("csv/MSE/notap/",one_layer,"_",seed,"_",nmcmc,".csv"))
   
-  write.csv(c(emp_cover, emp_cover99), file = paste0("csv/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("ytrue")) write.csv(c(emp_cover, emp_cover99), file = paste0("csv/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
   
   plot(fit$x, fit$y, type="n",
        ylim = range(c(m, lb, ub, lbb, ubb, Y)), 
-       main = paste0("est both,",if(taper_cov){ paste0("taper error w bohman\n",
-                tau_b,"=tau\n")}, emp_cover, " ", emp_cover99))
+       main = paste0("est both,", emp_cover, " ", emp_cover99))
   
   for (i in 1:nrun) lines(fit$x, Y[i,], col="gray")
   if(exists("y_hi")) lines(fit$x, y_hi, lwd=1.5, col="red")
@@ -199,12 +200,11 @@ plot.true.tau <- function(fit, S_e = fit$Sigma_hat, tolpower = parent.frame()$to
   if(exists("ytrue")) emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
   if(exists("ytrue")) write.csv(mean((m-ytrue)^2), file = paste0("csv/MSE/tap/",one_layer,"_",seed,"_",nmcmc,".csv"))
   
-  write.csv(c(emp_cover, emp_cover99), file = paste0("csv/tap/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("ytrue")) write.csv(c(emp_cover, emp_cover99), file = paste0("csv/tap/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
 
   plot(fit$x, fit$y, type="n",
        ylim = range(c(m, lb, ub, lbb, ubb, Y)), 
-       main = paste0("est both,",if(taper_cov){ paste0("taper error w bohman\n",
-                                                       tau_b,"=tau\n")}, emp_cover, " ", emp_cover99))
+       main = paste0("est both,",paste0("taper \n",unif_tau,"=tau\n"), emp_cover, " ", emp_cover99))
   
   for (i in 1:nrun) lines(fit$x, Y[i,], col="gray")
   if(exists("y_hi")) lines(fit$x, y_hi, lwd=1.5, col="red")
