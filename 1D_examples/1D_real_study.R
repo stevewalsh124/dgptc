@@ -1,6 +1,6 @@
 # real data study
 
-one_layer <- F
+one_layer <- T
 if(one_layer) {source("logl_cov_1L.R")} else {source("logl_cov.R")}
 
 source("matrix.Moore.Penrose.R")
@@ -22,7 +22,7 @@ taper_cov <- F
 krig <- F
 
 # Use hi res in Ybar calculation?
-use_hi <- F
+use_hi <- T
 
 ncores <- 2
 tolpower <- -10
@@ -34,7 +34,7 @@ bohman <- function(t, tau = 0.25){
 
 cov_fn <- "matern"#"exp2"#
 
-tau_b <- .1
+tau_b <- 1
 nrun <- 16
 nmcmc <- 7500
 nburn <- 1500
@@ -121,9 +121,10 @@ if(use_hi){
 if(taper_cov) Sigma_hat <- Sigma_hat * bohman(plgp:::distance(x), tau=tau_b)
 
 par(mfrow=c(1,2))
-matplot(x,t(Y),type="l")
+matplot(x,t(Y),type="l",col="gray")
+lines(x,y_hi,col="blue",lwd=2)
 lines(x,y_avg,col="red",lwd=2)
-lines(x,y_hi,col="yellow",lwd=2)
+legend("bottomright", legend = c("hi","avg"), lty=1, col=c("blue","red"))
 image.plot(Sigma_hat/nrunn, main = "input as sigma_hat")
 
 ####################
