@@ -105,10 +105,11 @@ for (ste in 1:18) {
     yy <- fit$y
     irreg <- as.data.frame(cbind(wstar,yy))
     colnames(irreg) <- c("lon","lat","y")
-    reg <- griddify(irreg, nlon = 40, nlat = 60)
+    reg <- griddify(irreg, nlon = 60, nlat = 90)
     
     # Plot the deformed error field along with original points
-    plot(fit$x[,1], fit$x[,2], pch = ".", cex = 0.3, asp=1,
+    plot(fit$x[,1], fit$x[,2], pch = ".", cex = 0.3, asp=1, bty="n",
+         xlab="lon", ylab="lat", main = "error field",
          xlim = c(range(fit$x[,1], irreg$lon)), ylim = c(range(fit$x[,2], irreg$lat)))
     plot(reg, add=T, alpha=1)
     points(irreg$lon, irreg$lat, pch = ".", cex = 0.3, col = col2alpha(1, alpha = 0.1))
