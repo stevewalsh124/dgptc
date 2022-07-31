@@ -105,7 +105,7 @@ plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = parent.frame(
   ubb <- apply(Ss, 1, function(x){quantile(x,0.995)}) #- y_avg
   lbb <- apply(Ss, 1, function(x){quantile(x,0.005)}) #- y_avg
   
-  if(exists("ytrue")) write.csv(logs_sample(y = y_avg_true, dat = Ss), file = paste0("csv/logS/notap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), file = paste0("csv/logS/notap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
   
   if(exists("y_hi")) emp_cover <- round(mean(y_hi > lb & y_hi < ub),3)
   if(exists("y_hi")) emp_cover99 <- round(mean(y_hi > lbb & y_hi < ubb),3)
@@ -157,12 +157,17 @@ plot.true.tau <- function(fit, S_e = fit$Sigma_hat, tolpower = parent.frame()$to
 
   Cs <- matrix(NA, length(fit$x)^2, fit$nmcmc)
   Ss <- St <- Sw <- Sx <- Ms <- matrix(NA, length(fit$x), fit$nmcmc)
+  
+  # move the next four lines into the for loop if you want to do draws for tau
+  print("this fn currently assumes a constant tau")
+  
+  S_e <- S_e * bohman(plgp:::distance(parent.frame()$x), unif_tau)
+  # S_e <- S_e * bohman(plgp:::distance(parent.frame()$x), ifelse(unif_tau, runif(1), exp(rnorm(1))))
+  S_ei <- matrix.Moore.Penrose2(S_e, tolp = tolpower)
+  S_ei <- (S_ei+t(S_ei))/2
   for (i in 1:fit$nmcmc){
-    S_e <- S_e * bohman(plgp:::distance(parent.frame()$x), unif_tau)
-    # S_e <- S_e * bohman(plgp:::distance(parent.frame()$x), ifelse(unif_tau, runif(1), exp(rnorm(1))))
-    S_ei <- matrix.Moore.Penrose2(S_e, tolp = tolpower)
-    S_ei <- (S_ei+t(S_ei))/2
-    if( i %% 2500 == 0) print(i)
+      
+     if( i %% 2500 == 0) print(i)
     theta <- fit$theta_y[i]
     # tau2 <- fit$tau2[i]
     # t2S_ei <- 1/tau2 * S_ei
@@ -185,7 +190,7 @@ plot.true.tau <- function(fit, S_e = fit$Sigma_hat, tolpower = parent.frame()$to
     # Sx[,i] <- mvtnorm::rmvnorm(n = 1, mean = M, sigma = C, method = "chol")
   }
   
-  if(exists("ytrue")) write.csv(logs_sample(y = y_avg_true, dat = Ss), file = paste0("csv/logS/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), file = paste0("csv/logS/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
   
   m <- rowMeans(Ss) #- y_avg
   ub <- apply(Ss, 1, function(x){quantile(x,0.975)}) #- y_avg
@@ -215,8 +220,10 @@ plot.true.tau <- function(fit, S_e = fit$Sigma_hat, tolpower = parent.frame()$to
   lines(fit$x, ub , col="blue", lty=2)
   lines(fit$x, lbb , col="darkblue", lty=2)
   lines(fit$x, ubb , col="darkblue", lty=2)
-  legend("bottomright", legend = c("true", "sample avg", "UQ"), 
-         col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
+  if(exists("ytrue"))  legend("bottomright", legend = c("true", "sample avg", "UQ"), 
+                              col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
+  if(exists("y_hi"))  legend("bottomright", legend = c("hi_res", "sample avg", "UQ"), 
+                             col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
   
   # Using law of total expectation and variance instead
   mu_bar <- rowMeans(Ms)
@@ -232,7 +239,9 @@ plot.true.tau <- function(fit, S_e = fit$Sigma_hat, tolpower = parent.frame()$to
   lines(x, fit$y, lty=2)
   lines(x, mu_bar - 2*sqrt(diag(C_bar+cov_mut)), col="blue")
   lines(x, mu_bar + 2*sqrt(diag(C_bar+cov_mut)), col="blue")
-  legend("bottomright", legend = c("true", "sample avg", "UQ"), 
-         col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
+  if(exists("ytrue"))  legend("bottomright", legend = c("true", "sample avg", "UQ"), 
+                              col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
+  if(exists("y_hi"))  legend("bottomright", legend = c("hi_res", "sample avg", "UQ"), 
+                              col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
   
 }
