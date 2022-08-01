@@ -1,6 +1,6 @@
 # real data study
 
-one_layer <- T
+one_layer <- F
 if(one_layer) {source("logl_cov_1L.R")} else {source("logl_cov.R")}
 
 source("matrix.Moore.Penrose.R")
@@ -36,8 +36,8 @@ cov_fn <- "matern"#"exp2"#
 
 tau_b <- 1
 nrun <- 16
-nmcmc <- 7500
-nburn <- 1500
+nmcmc <- 22500
+nburn <- 2500
 kth <- 2
 
 bte <- 3 # cols 3-18 are low res
@@ -155,3 +155,5 @@ if(!taper_cov) plot.true(fitcov, S_e = fitcov$Sigma_hat*bohman(plgp:::distance(x
 if(!one_layer) plot.warp(fitcov)
 
 dev.off()
+
+save.image(file = paste0("rda/1D_real_study_",nmcmc,"_",one_layer,".rda"))
