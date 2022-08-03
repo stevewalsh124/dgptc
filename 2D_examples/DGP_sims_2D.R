@@ -6,7 +6,7 @@
 
 # Code based on that of M.A.R. Ferreira, 2016.
 
-pdf("pdf/deform_2D_sims.pdf")
+pdf("pdf/deform_2D_sims_i4.pdf", width = 8, height=4)
 
 library(fields) # image.plot
 library(Morpho) # deformGrid2d
@@ -14,7 +14,7 @@ library(marmap) # griddify
 library(raster) # plot(.raster)
 
 # How many simulations do you want?
-nsims <- 15
+nsims <- 20
 # # of pixels per simulation? (11^2, 21^2, 31^2, etc.)
 npix <- 41^2
 
@@ -44,10 +44,10 @@ for (i in 1:nsims) {
   
   print(i)
   
-  par(mfrow=c(2,2))
+  par(mfrow=c(1,3), mar=c(5,4,4,4)+0.1)
   # Currently the same for each layer; can change for individual layers
   phi_y <- 1/3
-  phi_w <- 0.01*i^3
+  phi_w <- 0.01*4^3#0.01*i^3
   sigma2 <- 1
   tau2 <- .Machine$double.eps^0.5
   
@@ -119,8 +119,8 @@ for (i in 1:nsims) {
 
   # show plots of deformation
   # same as plot(rasterFromXYZ(cbind(s,w1)))
-  image.plot(matrix(w1,length(xaxis),length(yaxis)), main = "x to w1") 
-  image.plot(matrix(w2,length(xaxis),length(yaxis)), main = "x to w2")
+  # image.plot(matrix(w1,length(xaxis),length(yaxis)), main = "x to w1") 
+  # image.plot(matrix(w2,length(xaxis),length(yaxis)), main = "x to w2")
   
   # plot the complete deformation of geographic points
   deformGrid2d(s, ww, ngrid=25, pch=19, main=paste("X to W"), gridcol = "black", lines = F)
@@ -129,13 +129,13 @@ for (i in 1:nsims) {
   irreg <- as.data.frame(cbind(ww,y))
   colnames(irreg) <- c("lon","lat","y")
   reg <- griddify(irreg, nlon = 40, nlat = 60)
-  plot(reg, main = "W to Y")
+  # plot(reg, main = "W to Y")
   
-  par(mfrow=c(1,2))
+  # par(mfrow=c(1,2))
   # compare the stationary, isotropic GP on the deformed space...
-  plot(reg, main = "W to Y (iso, stat)")
+  plot(reg, main = "W to Y \n(isotropic, stationary)")
   # ... with the corresponding nonstationary GP on geographic points
-  plot(rasterFromXYZ(cbind(s,y)), main = "X to Y (nonst)")
+  plot(rasterFromXYZ(cbind(s,y)), main = "X to Y \n(nonstationary)")
   # # same as above
   # image.plot(yp + matrix(nug, length(xaxis),length(yaxis)),
   #            main = bquote("X to Y\n" ~ phi == .(round(phi,1)) ~ ",  " ~ sigma^2 == .(round(sigma2,1)) ~ ",  "
