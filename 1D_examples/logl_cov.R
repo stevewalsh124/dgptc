@@ -64,7 +64,7 @@ fit_two_layer_SW <- function (x, y, D = ifelse(is.matrix(x), ncol(x), 1), nmcmc 
   if (pmx) { 
     if (ncol(x) != D) stop("for pmx, D must equal dimension of x")
     settings$w_prior_mean <- x
-  } else settings$w_prior_mean <- rep(0, nrow = nrow(x), ncol = ncol(x))
+  } else settings$w_prior_mean <- matrix(0, nrow = nrow(x), ncol = ncol(x))
   
   out <- list(x = x, y = y, nmcmc = nmcmc, settings = settings, cov = cov)
   
