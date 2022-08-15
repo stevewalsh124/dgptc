@@ -376,7 +376,7 @@ gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, setti
     for (i in 1:D) {
       ### NEW - sample_theta_vec_new function accepts prior mean as argument
       ### NEW - calls logl_vec_new which accepts prior mean as argument
-      samp <- sample_theta_vec(w[[j - 1]][, i], g = eps, 
+      samp <- sample_theta_vec_new(w[[j - 1]][, i], g = eps, 
                                theta_w[j - 1, i], alpha = settings$alpha$theta_w, 
                                beta = settings$beta$theta_w, l = settings$l, 
                                u = settings$u, outer = FALSE, approx = x_approx, 
