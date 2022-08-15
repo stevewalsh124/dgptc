@@ -439,10 +439,10 @@ sample_theta_vec_new <- function (y, g, theta_t, alpha, beta, l, u, outer, ll_pr
   theta_star <- runif(1, min = l * theta_t/u, max = u * theta_t/l)
   ru <- runif(1, min = 0, max = 1)
   if (is.null(ll_prev)) 
-    ll_prev <- logl_vec(y, approx, g, theta_t, outer, v, mean = prior_mean)$logl
+    ll_prev <- logl_vec_new(y, approx, g, theta_t, outer, v, mean = prior_mean)$logl
   lpost_threshold <- ll_prev + dgamma(theta_t - eps, alpha, 
                                       beta, log = TRUE) + log(ru) - log(theta_t) + log(theta_star)
-  ll_new <- logl_vec(y, approx, g, theta_star, outer, v, tau2 = tau2, mean = prior_mean)
+  ll_new <- logl_vec_new(y, approx, g, theta_star, outer, v, tau2 = tau2, mean = prior_mean)
   new <- ll_new$logl + dgamma(theta_star - eps, alpha, beta, 
                               log = TRUE)
   if (new > lpost_threshold) {
