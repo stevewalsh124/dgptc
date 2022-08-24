@@ -6,9 +6,12 @@ one_layer <- F
 force_id_warp <- F
 
 if(one_layer) {source("../dgp.hm/R/logl_cov_1L.R")} else {source("../dgp.hm/R/logl_cov.R")}
+source("../dgp.hm/R/bohman.R")
 source("../dgp.hm/R/matrix.Moore.Penrose.R")
 source("../dgp.hm/R/plot_fns.R") #plot.krig, plot.true, plot.warp
-source("../dgp.hm/R/bohman.R")
+source("../dgp.hm/R/predict.R")
+source("../dgp.hm/R/trim.R")
+source("../dgp.hm/R/vecchia.R")
 
 # load the precision data (k, prec_highres, prec_lowres, index_list)
 load("Mira-Titan-IV-data/precision_and_indexes.Rdata")
