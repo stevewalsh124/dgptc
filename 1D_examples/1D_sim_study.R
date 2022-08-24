@@ -1,10 +1,11 @@
 # sim study
 
 one_layer <- F
-if(one_layer) {source("logl_cov_1L.R")} else {source("logl_cov.R")}
 
-source("matrix.Moore.Penrose.R")
-source("plot_fns.R")
+if(one_layer) {source("../dgp.hm/R/logl_cov_1L.R")} else {source("../dgp.hm/R/logl_cov.R")}
+source("../dgp.hm/R/matrix.Moore.Penrose.R")
+source("../dgp.hm/R/plot_fns.R") #plot.krig, plot.true, plot.warp
+source("../dgp.hm/R/bohman.R")
 
 # load the precision data (k, prec_highres, prec_lowres, index_list)
 load("Mira-Titan-IV-data/precision_and_indexes.Rdata")
@@ -393,11 +394,7 @@ lines(fitcov$x, ubb , col="darkblue", lty=2)
 legend("bottomright", legend = c("true", "sample avg", "UQ"), 
        col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
 
-bohman <- function(t, tau = 0.25){
-  boh <- (1-t/tau)*cos(pi*t/tau)+sin(pi*t/tau)/pi
-  boh <- ifelse(t>=tau, 0, boh)
-}
-
+# try assorted tau values for bohman
 for (tau_b in c((1:9)/10,1:10,10*(2:10))/100) {
   S_e <- Sigma_hat/nrun * bohman(plgp:::distance(x), tau=tau_b)
   S_ei <- matrix.Moore.Penrose2(S_e)

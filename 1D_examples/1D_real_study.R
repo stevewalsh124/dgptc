@@ -1,10 +1,14 @@
 # real data study
 
+vecchia <- T
+pmx <- F
 one_layer <- F
-if(one_layer) {source("logl_cov_1L.R")} else {source("logl_cov.R")}
+force_id_warp <- F
 
-source("matrix.Moore.Penrose.R")
-source("plot_fns.R") #plot.krig, plot.true, plot.warp
+if(one_layer) {source("../dgp.hm/R/logl_cov_1L.R")} else {source("../dgp.hm/R/logl_cov.R")}
+source("../dgp.hm/R/matrix.Moore.Penrose.R")
+source("../dgp.hm/R/plot_fns.R") #plot.krig, plot.true, plot.warp
+source("../dgp.hm/R/bohman.R")
 
 # load the precision data (k, prec_highres, prec_lowres, index_list)
 load("Mira-Titan-IV-data/precision_and_indexes.Rdata")
@@ -27,17 +31,12 @@ use_hi <- T
 ncores <- 2
 tolpower <- -10
 
-bohman <- function(t, tau = 0.25){
-  boh <- (1-t/tau)*cos(pi*t/tau)+sin(pi*t/tau)/pi
-  boh <- ifelse(t>=tau, 0, boh)
-}
-
 cov_fn <- "matern"#"exp2"#
 
 tau_b <- 1
 nrun <- 16
-nmcmc <- 22500
-nburn <- 2500
+nmcmc <- 1000
+nburn <- 500
 kth <- 2
 
 bte <- 3 # cols 3-18 are low res
@@ -49,7 +48,7 @@ if(length(args) > 0)
 
 pdf(paste0("pdf/realstudydgpact_",nmcmc,"_",nrun,"_",
            if(taper_cov){paste0("tpr")},tau_b,
-           if(use_hi){"_uh"},
+           if(use_hi){"_uh"},if(pmx){"_pmx"},if(force_id_warp){"_fiw"},if(vecchia){"_vec"},
            if(one_layer){"_1L"},"_",cov_fn,tolpower,".pdf"))
 
 step <- 499
@@ -131,7 +130,14 @@ image.plot(Sigma_hat/nrunn, main = "input as sigma_hat")
 # run for sim data #
 ####################
 
-fitcov <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = Sigma_hat/nrunn, cov = cov_fn)
+if(force_id_warp){
+  fitcov <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = Sigma_hat/nrunn, cov = cov_fn, pmx = pmx, 
+                             vecchia = vecchia, settings = list(alpha =list(theta_w=1000), beta=list(theta_w=.0001/1000)))
+} else {
+  fitcov <- fit_two_layer_SW(x = x, y = y_avg, nmcmc = nmcmc, Sigma_hat = Sigma_hat/nrunn, cov = cov_fn, pmx = pmx, 
+                             vecchia = vecchia)
+}
+
 # plot(fitcov)
 fitcov <- trim_SW(fitcov, nburn, kth)
 plot(fitcov)
@@ -156,4 +162,5 @@ if(!one_layer) plot.warp(fitcov)
 
 dev.off()
 
-save.image(file = paste0("rda/1D_real_study_",nmcmc,"_",one_layer,".rda"))
+save.image(file = paste0("rda/1D_real_study_",nmcmc,"_",one_layer,if(pmx){"_pmx"},
+                         if(force_id_warp){"_fiw"},if(vecchia){"_vec"},".rda"))
