@@ -26,7 +26,7 @@ gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, setti
   ll_outer <- NULL
   for (j in 2:nmcmc) {
     if (verb) 
-      if (j%%1000 == 0) 
+      if (j%%100 == 0) 
         cat(j, "\n")
     if (is.null(true_g)) {
       samp <- sample_g_vec_SW(y, g[j - 1], theta_y[j - 1], 
@@ -54,7 +54,7 @@ gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, setti
                                    theta_w[j - 1, i], alpha = settings$alpha$theta_w, 
                                    beta = settings$beta$theta_w, l = settings$l, 
                                    u = settings$u, outer = FALSE, approx = x_approx, 
-                                   v = v, prior_mean = settings$w_prior_mean[, i])
+                                   v = v, prior_mean = settings$w_prior_mean[, i], Sigma_hat = Sigma_hat)
       theta_w[j, i] <- samp$theta
     }
     
@@ -108,15 +108,15 @@ sample_theta_vec_SW <- function (y, g, theta_t, alpha, beta, l, u, outer, ll_pre
 
 ### NEW FUNCTION
 sample_theta_vec_new <- function (y, g, theta_t, alpha, beta, l, u, outer, ll_prev = NULL, 
-                                  approx, v, tau2 = FALSE, prior_mean = 0) 
+                                  approx, v, tau2 = FALSE, prior_mean = 0, Sigma_hat) 
 {
   theta_star <- runif(1, min = l * theta_t/u, max = u * theta_t/l)
   ru <- runif(1, min = 0, max = 1)
   if (is.null(ll_prev)) 
-    ll_prev <- logl_vec_new(y, approx, g, theta_t, outer, v, mean = prior_mean)$logl
+    ll_prev <- logl_vec_new(y, approx, g, theta_t, outer, v, mean = prior_mean, Sigma_hat = Sigma_hat)$logl
   lpost_threshold <- ll_prev + dgamma(theta_t - eps, alpha, 
                                       beta, log = TRUE) + log(ru) - log(theta_t) + log(theta_star)
-  ll_new <- logl_vec_new(y, approx, g, theta_star, outer, v, tau2 = tau2, mean = prior_mean)
+  ll_new <- logl_vec_new(y, approx, g, theta_star, outer, v, tau2 = tau2, mean = prior_mean, Sigma_hat = Sigma_hat)
   new <- ll_new$logl + dgamma(theta_star - eps, alpha, beta, 
                               log = TRUE)
   if (new > lpost_threshold) {
@@ -129,11 +129,11 @@ sample_theta_vec_new <- function (y, g, theta_t, alpha, beta, l, u, outer, ll_pr
 
 ### NEW FUNCTION
 logl_vec_new <- function (out_vec, approx, g, theta, outer = TRUE, v, tau2 = FALSE, 
-                          mean = rep(0, times = length(out_vec))) 
+                          mean = rep(0, times = length(out_vec)), Sigma_hat) 
 {
   n <- length(out_vec)
   out_vec_ord <- out_vec[approx$ord] - mean[approx$ord] ### NEW
-  U_mat <- create_U(approx, g, theta, v)
+  U_mat <- create_U_SW(approx, g, theta, v, Sigma_hat = Sigma_hat)
   Uty <- Matrix::crossprod(U_mat, out_vec_ord)
   ytUUty <- sum(Uty^2)
   logdet <- sum(log(Matrix::diag(U_mat)))
@@ -196,7 +196,7 @@ sample_w_vec_SW <- function (y, w_approx, x_approx, g, theta_y, theta_w, ll_prev
 logl_vec_SW <- function (out_vec, approx, g, theta, outer = FALSE, v, tau2 = FALSE, Sigma_hat) {
   n <- length(out_vec)
   out_vec_ord <- out_vec[approx$ord]
-  U_mat <- create_U_SW(approx, g, theta, v, Sigma_hat)
+  U_mat <- create_U_SW(approx, g, theta, v, Sigma_hat = Sigma_hat)
   Uty <- Matrix::crossprod(U_mat, out_vec_ord)
   ytUUty <- sum(Uty^2)
   logdet <- sum(log(Matrix::diag(U_mat)))
@@ -216,7 +216,7 @@ logl_vec_SW <- function (out_vec, approx, g, theta, outer = FALSE, v, tau2 = FAL
 create_U_SW <- function (approx, g, theta, v, Sigma_hat) {
   n <- nrow(approx$x_ord)
   U <- U_entries_SW(approx$n_cores, n, approx$x_ord, approx$revNN,
-                    approx$revCond, c(1, theta, 0, v), g = g*Sigma_hat)
+                    approx$revCond, c(1, theta, 0, v), g = diag(g*Sigma_hat))
   U <- c(t(U))[approx$notNA]
   U_mat <- Matrix::sparseMatrix(i = approx$col_indices, j = approx$row_pointers,
                                 x = U, dims = c(n, n))
