@@ -206,9 +206,9 @@ plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
        ylim = range(c(m, lb, ub, lbb, ubb, Y)), 
        main = paste0("est both,", if(exists("emp_cover")){emp_cover}, " ", if(exists("emp_cover99")){emp_cover99}))
   
-  for (i in 1:nrun) lines(fit$x, Y[i,], col="gray")
-  if(exists("y_hi")) lines(fit$x, y_hi, lwd=1.5, col="red")
-  if(exists("ytrue")) lines(fit$x, ytrue, lwd=1.5, col="red")
+  # for (i in 1:nrun) lines(fit$x, Y[i,], col="gray")
+  # if(exists("y_hi")) lines(fit$x, y_hi, lwd=1.5, col="red")
+  # if(exists("ytrue")) lines(fit$x, ytrue, lwd=1.5, col="red")
   lines(fit$x, fit$y, lwd=1.5, lty=2)
   lines(fit$x, m , col="blue")
   lines(fit$x, lb , col="blue", lty=2)
@@ -226,8 +226,8 @@ plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
   plot(x, mu_bar, type="n", main = "law of total E & V; MPI version", col="blue")
   # for (i in 1:nrun) lines(fit$x, Y[i,], col="gray")
   lines(x, mu_bar, col="blue")
-  if(exists("y_hi")) lines(x, y_hi, col="red")
-  if(exists("ytrue")) lines(x, ytrue, col="red")
+  # if(exists("y_hi")) lines(x, y_hi, col="red")
+  # if(exists("ytrue")) lines(x, ytrue, col="red")
   lines(x, fit$y, lty=2)
   lines(x, mu_bar - 2*sqrt(diag(C_bar+cov_mut)), col="blue")
   lines(x, mu_bar + 2*sqrt(diag(C_bar+cov_mut)), col="blue")
