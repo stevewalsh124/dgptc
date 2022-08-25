@@ -1,5 +1,7 @@
 # Toy example to debug
 
+library(mvtnorm)
+
 vecchia <- T
 pmx <- F
 one_layer <- F
