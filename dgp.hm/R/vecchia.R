@@ -26,7 +26,7 @@ gibbs_two_layer_vec_SW <- function (x, y, nmcmc, D, verb, initial, true_g, setti
   ll_outer <- NULL
   for (j in 2:nmcmc) {
     if (verb) 
-      if (j%%100 == 0) 
+      if (j%%1000 == 0) 
         cat(j, "\n")
     if (is.null(true_g)) {
       samp <- sample_g_vec_SW(y, g[j - 1], theta_y[j - 1], 

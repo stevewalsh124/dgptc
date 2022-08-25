@@ -20,21 +20,30 @@ x <- seq(0,1,length.out=n)
 w <- x^2
 
 # true mean and covariance
-S_true <- sin(2*pi*w)
-Sigma_true <- diag(w^3)
+S_true <- sin(4*pi*w)
+Sigma_true <- diag(w^3 + .Machine$double.eps)
 
-# generate r runs and find the sample average
+# generate r runs, each of length n
 Y <- matrix(NA, r, n)
 for(i in 1:r) Y[i,] <- S_true + rmvnorm(n = 1, sigma = Sigma_true)
+
+# estimated mean and covariance
 ybar <- colMeans(Y)
+Sigma_hat <- cov(Y)/r
 
 # Plots of observations, average, and true mean
 # matplot(x, t(Y), col="gray", type="l")
 # lines(x, ybar, col="red")
 # lines(x, S_true, col="blue")
 
-fit <- fit_two_layer_SW(x, ybar, nmcmc = 10000, Sigma_hat = cov(Y), pmx = pmx, vecchia = vecchia)
+fit <- fit_two_layer_SW(x, ybar, nmcmc = 1000, Sigma_hat = Sigma_hat, pmx = pmx, vecchia = vecchia)
 plot(fit)
 
-fit <- trim_SW(fit, burn = 250, thin = 1)
+fit <- trim_SW(fit, burn = 500, thin = 2)
 plot(fit)
+
+v <- fit$v
+ytrue <- S_true
+plot.true(fit, nrun = r)
+plot.true.tau(fit, nrun = r, unif_tau = .1)
+# plot.true.tau(fit, nrun = r, unif_tau = 1)

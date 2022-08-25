@@ -67,8 +67,8 @@ plot.krig <- function(fit, zz=fit$mean, Y=parent.frame()$Y, precs_pred=parent.fr
 }
 
 # Plot simulations of truth given the data
-plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = parent.frame()$tolpower,
-                      Y = parent.frame()$Y){
+plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
+                      Y = parent.frame()$Y, nrun = nrow(Y)){
   S_ei <- matrix.Moore.Penrose2(S_e, tolp = tolpower)
   S_ei <- (S_ei+t(S_ei))/2
   
@@ -105,20 +105,20 @@ plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = parent.frame(
   ubb <- apply(Ss, 1, function(x){quantile(x,0.995)}) #- y_avg
   lbb <- apply(Ss, 1, function(x){quantile(x,0.005)}) #- y_avg
   
-  if(exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), file = paste0("csv/logS/notap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), file = paste0("csv/logS/notap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
   
   if(exists("y_hi")) emp_cover <- round(mean(y_hi > lb & y_hi < ub),3)
   if(exists("y_hi")) emp_cover99 <- round(mean(y_hi > lbb & y_hi < ubb),3)
   
   if(exists("ytrue")) emp_cover <- round(mean(ytrue > lb & ytrue < ub),3)
   if(exists("ytrue")) emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
-  if(exists("ytrue")) write.csv(mean((m-ytrue)^2), file = paste0("csv/MSE/notap/",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), file = paste0("csv/MSE/notap/",one_layer,"_",seed,"_",nmcmc,".csv"))
   
-  if(exists("ytrue")) write.csv(c(emp_cover, emp_cover99), file = paste0("csv/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), file = paste0("csv/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
   
   plot(fit$x, fit$y, type="n",
        ylim = range(c(m, lb, ub, lbb, ubb, Y)), 
-       main = paste0("est both,", emp_cover, " ", emp_cover99))
+       main = paste0("est both,", if(exists("emp_cover")){emp_cover}, " ", if(exists("emp_cover99")){emp_cover99}))
   
   for (i in 1:nrun) lines(fit$x, Y[i,], col="gray")
   if(exists("y_hi")) lines(fit$x, y_hi, lwd=1.5, col="red")
@@ -153,8 +153,8 @@ plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = parent.frame(
 
 
 # Plot simulations of truth given the data
-plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = parent.frame()$tolpower,
-                      Y = parent.frame()$Y){
+plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
+                      Y = parent.frame()$Y, nrun = nrow(Y)){
   S_ei <- matrix.Moore.Penrose2(S_e, tolp = tolpower)
   S_ei <- (S_ei+t(S_ei))/2
   
@@ -191,20 +191,20 @@ plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = parent.
   ubb <- apply(Ss, 1, function(x){quantile(x,0.995)}) #- y_avg
   lbb <- apply(Ss, 1, function(x){quantile(x,0.005)}) #- y_avg
   
-  if(exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), file = paste0("csv/logS/notap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), file = paste0("csv/logS/notap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
   
   if(exists("y_hi")) emp_cover <- round(mean(y_hi > lb & y_hi < ub),3)
   if(exists("y_hi")) emp_cover99 <- round(mean(y_hi > lbb & y_hi < ubb),3)
   
   if(exists("ytrue")) emp_cover <- round(mean(ytrue > lb & ytrue < ub),3)
   if(exists("ytrue")) emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
-  if(exists("ytrue")) write.csv(mean((m-ytrue)^2), file = paste0("csv/MSE/notap/",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), file = paste0("csv/MSE/notap/",one_layer,"_",seed,"_",nmcmc,".csv"))
   
-  if(exists("ytrue")) write.csv(c(emp_cover, emp_cover99), file = paste0("csv/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), file = paste0("csv/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
   
   plot(fit$x, fit$y, type="n",
        ylim = range(c(m, lb, ub, lbb, ubb, Y)), 
-       main = paste0("est both,", emp_cover, " ", emp_cover99))
+       main = paste0("est both,", if(exists("emp_cover")){emp_cover}, " ", if(exists("emp_cover99")){emp_cover99}))
   
   for (i in 1:nrun) lines(fit$x, Y[i,], col="gray")
   if(exists("y_hi")) lines(fit$x, y_hi, lwd=1.5, col="red")
@@ -237,8 +237,8 @@ plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = parent.
 }
 
 # Plot simulations of truth given the data, differing tau
-plot.true.tau <- function(fit, S_e = fit$Sigma_hat, tolpower = parent.frame()$tolpower, 
-                          Y = parent.frame()$Y, unif_tau = 0.1){
+plot.true.tau <- function(fit, S_e = fit$Sigma_hat, tolpower = -10, 
+                          Y = parent.frame()$Y, unif_tau = 0.1, nrun = nrow(Y)){
 
   Cs <- matrix(NA, length(fit$x)^2, fit$nmcmc)
   Ss <- St <- Sw <- Sx <- Ms <- matrix(NA, length(fit$x), fit$nmcmc)
@@ -275,7 +275,7 @@ plot.true.tau <- function(fit, S_e = fit$Sigma_hat, tolpower = parent.frame()$to
     # Sx[,i] <- mvtnorm::rmvnorm(n = 1, mean = M, sigma = C, method = "chol")
   }
   
-  if(exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), file = paste0("csv/logS/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), file = paste0("csv/logS/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
   
   m <- rowMeans(Ss) #- y_avg
   ub <- apply(Ss, 1, function(x){quantile(x,0.975)}) #- y_avg
@@ -288,13 +288,14 @@ plot.true.tau <- function(fit, S_e = fit$Sigma_hat, tolpower = parent.frame()$to
   
   if(exists("ytrue")) emp_cover <- round(mean(ytrue > lb & ytrue < ub),3)
   if(exists("ytrue")) emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
-  if(exists("ytrue")) write.csv(mean((m-ytrue)^2), file = paste0("csv/MSE/tap/",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), file = paste0("csv/MSE/tap/",one_layer,"_",seed,"_",nmcmc,".csv"))
   
-  if(exists("ytrue")) write.csv(c(emp_cover, emp_cover99), file = paste0("csv/tap/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), file = paste0("csv/tap/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
 
   plot(fit$x, fit$y, type="n",
        ylim = range(c(m, lb, ub, lbb, ubb, Y)), 
-       main = paste0("est both,",paste0("taper \n",unif_tau,"=tau\n"), emp_cover, " ", emp_cover99))
+       main = paste0("est both,",paste0("taper \n",unif_tau,"=tau\n"), 
+                     if(exists("emp_cover")){emp_cover}, " ", if(exists("emp_cover99")){emp_cover99}))
   
   for (i in 1:nrun) lines(fit$x, Y[i,], col="gray")
   if(exists("y_hi")) lines(fit$x, y_hi, lwd=1.5, col="red")
