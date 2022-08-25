@@ -33,4 +33,3 @@ ybar <- colMeans(Y)
 
 fit <- fit_two_layer_SW(x, ybar, nmcmc = 500, Sigma_hat = cov(Y), pmx = pmx, vecchia = vecchia)
 plot(fit)
-predict.d
