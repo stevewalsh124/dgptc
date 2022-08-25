@@ -2,8 +2,8 @@
 
 library(mvtnorm)
 
-vecchia <- T
-pmx <- F
+vecchia <- F
+pmx <- T
 one_layer <- F
 
 if(one_layer) {source("../dgp.hm/R/logl_cov_1L.R")} else {source("../dgp.hm/R/logl_cov.R")}
@@ -39,11 +39,13 @@ Sigma_hat <- cov(Y)/r
 fit <- fit_two_layer_SW(x, ybar, nmcmc = 1000, Sigma_hat = Sigma_hat, pmx = pmx, vecchia = vecchia)
 plot(fit)
 
-fit <- trim_SW(fit, burn = 500, thin = 2)
+fit <- trim_SW(fit, burn = 200, thin = 4)
 plot(fit)
 
 v <- fit$v
 ytrue <- S_true
 plot.true(fit, nrun = r)
 plot.true.tau(fit, nrun = r, unif_tau = .1)
+plot.warp(fit)
+lines(x,w)
 # plot.true.tau(fit, nrun = r, unif_tau = 1)
