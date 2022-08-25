@@ -33,5 +33,8 @@ ybar <- colMeans(Y)
 # lines(x, ybar, col="red")
 # lines(x, S_true, col="blue")
 
-fit <- fit_two_layer_SW(x, ybar, nmcmc = 500, Sigma_hat = cov(Y), pmx = pmx, vecchia = vecchia)
+fit <- fit_two_layer_SW(x, ybar, nmcmc = 10000, Sigma_hat = cov(Y), pmx = pmx, vecchia = vecchia)
+plot(fit)
+
+fit <- trim_SW(fit, burn = 250, thin = 1)
 plot(fit)
