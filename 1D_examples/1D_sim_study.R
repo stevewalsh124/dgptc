@@ -1,5 +1,7 @@
 # sim study
 
+vecchia <- F
+pmx <- T
 one_layer <- F
 
 if(one_layer) {source("../dgp.hm/R/logl_cov_1L.R")} else {source("../dgp.hm/R/logl_cov.R")}
@@ -32,14 +34,14 @@ for (seed in 1:10) {
 cov_fn <- "matern"#"exp2"#
 
 nrun <- 16
-nmcmc <- 22504
-nburn <- 2500
+nmcmc <- 5000
+nburn <- 1000
 kth <- 4
 
 pdf(paste0("pdf/simstudydgpact_",nmcmc,"_",nrun,
            if(true_diag){"_TD"},
            if(use_true_cov){"_UTC"},
-           if(taper_cov){"_tpr"},
+           if(taper_cov){"_tpr"}, if(pmx){"_pmx"}, if(vecchia){"_vec"},
            if(one_layer){"_1L"},"_",cov_fn,"_",seed,".pdf"))
 
 bte <- 3 # cols 3-18 are low res
@@ -155,7 +157,8 @@ image.plot(Sigma_hat, main = "input as sigma_hat", zlim = range(c(Cov_true,Sigma
 ####################
 
 fitcov <- fit_two_layer_SW(x = x, y = colMeans(Y_sim), nmcmc = nmcmc, 
-                           Sigma_hat = Sigma_hat/nrun, cov = cov_fn)
+                           Sigma_hat = Sigma_hat/nrun, cov = cov_fn,
+                           pmx = pmx, vecchia = vecchia)
 # plot(fitcov)
 fitcov <- trim_SW(fitcov, nburn, kth)
 plot(fitcov)
