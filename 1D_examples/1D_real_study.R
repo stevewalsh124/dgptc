@@ -1,6 +1,6 @@
 # real data study
 
-vecchia <- T
+vecchia <- F
 pmx <- F
 one_layer <- F
 force_id_warp <- F
@@ -38,8 +38,8 @@ cov_fn <- "matern"#"exp2"#
 
 tau_b <- 1
 nrun <- 16
-nmcmc <- 1000
-nburn <- 500
+nmcmc <- 12000
+nburn <- 2000
 kth <- 2
 
 bte <- 3 # cols 3-18 are low res
@@ -165,5 +165,5 @@ if(!one_layer) plot.warp(fitcov)
 
 dev.off()
 
-save.image(file = paste0("rda/1D_real_study_",nmcmc,"_",one_layer,if(pmx){"_pmx"},
+save.image(file = paste0("rda/1D_real_study_",nmcmc,"_",one_layer,if(pmx){"_pmx"},if(taper_cov){paste0("tpr")},
                          if(force_id_warp){"_fiw"},if(vecchia){"_vec"},".rda"))
