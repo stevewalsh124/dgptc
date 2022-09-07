@@ -6,6 +6,12 @@ vecchia <- F
 pmx <- T
 one_layer <- F
 
+taper_cov <- T
+tau_b <- 0.1
+nmcmc <- 6000
+nburn <- 1000
+kth <- 5
+
 if(one_layer) {source("../dgp.hm/R/logl_cov_1L.R")} else {source("../dgp.hm/R/logl_cov.R")}
 source("../dgp.hm/R/bohman.R")
 source("../dgp.hm/R/matrix.Moore.Penrose.R")
@@ -36,16 +42,36 @@ Sigma_hat <- cov(Y)/r
 # lines(x, ybar, col="red")
 # lines(x, S_true, col="blue")
 
-fit <- fit_two_layer_SW(x, ybar, nmcmc = 1000, Sigma_hat = Sigma_hat, pmx = pmx, vecchia = vecchia)
+# Fit and plots with toggle for tapering the covariance matrix
+if(one_layer){
+  if(taper_cov){
+    fit <- fit_two_layer_SW(x, ybar, nmcmc = nmcmc, 
+                            Sigma_hat = Sigma_hat * bohman(sqrt(plgp::distance(x)), tau_b))
+  } else {
+    fit <- fit_two_layer_SW(x, ybar, nmcmc = nmcmc, Sigma_hat = Sigma_hat)
+  }
+} else {
+  if(taper_cov){
+    fit <- fit_two_layer_SW(x, ybar, nmcmc = nmcmc, 
+                            Sigma_hat = Sigma_hat * bohman(sqrt(plgp::distance(x)), tau_b), pmx = pmx, vecchia = vecchia)
+  } else {
+    fit <- fit_two_layer_SW(x, ybar, nmcmc = nmcmc, Sigma_hat = Sigma_hat, pmx = pmx, vecchia = vecchia)
+  }
+  
+}
+
+# trace plots before and after removing burn-in
+plot(fit)
+fit <- trim_SW(fit, burn = nburn, thin = kth)
 plot(fit)
 
-fit <- trim_SW(fit, burn = 200, thin = 4)
-plot(fit)
-
+# look at UQ, via sims of the truth given the data
 v <- fit$v
 ytrue <- S_true
 plot.true(fit, nrun = r)
-plot.true.tau(fit, nrun = r, unif_tau = .1)
-plot.warp(fit)
-lines(x,w)
-# plot.true.tau(fit, nrun = r, unif_tau = 1)
+
+# plot the hidden layer
+if(!one_layer){
+  plot.warp(fit)
+  lines(x,w)
+}
