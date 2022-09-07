@@ -29,6 +29,8 @@ plot.warp <- function(fit, wl = 1, wh = length(fit$x), ref.scale = 1){
   w_avg <- colMeans(ws)
   w_lb <- apply(ws, 2, function(x) quantile(x, 0.025))
   w_ub <- apply(ws, 2, function(x) quantile(x, 0.975))
+  w_lbb <- apply(ws, 2, function(x) quantile(x, 0.005))
+  w_ubb <- apply(ws, 2, function(x) quantile(x, 0.995))
   
   par(mfrow=c(1,1))
   plot(x, w_avg, type="l", col="blue", main = "warpings, with mean and 95% CI")
@@ -37,6 +39,23 @@ plot.warp <- function(fit, wl = 1, wh = length(fit$x), ref.scale = 1){
   lines(x, w_lb, col="blue", lty=2)
   lines(x, w_ub, col="blue", lty=2)
   abline(0, 1, col="red")
+  
+  if(exists("warp_true")){
+    lines(x, warp_true, col="green")
+    warp_cover <- round(mean(warp_true > w_lb & warp_true < w_ub),3)
+    warp_cover99 <- round(mean(warp_true > w_lbb & warp_true < w_ubb),3)
+    if(exists("taper_cov")){
+      if(taper_cov){
+        if(exists("seed") & exists("ytrue")) write.csv(c(warp_cover, warp_cover99), 
+                                                       file = paste0("csv/warp_cover/tap/wcov_",one_layer,"_",seed,"_",nmcmc,".csv"))
+      } else {
+        if(exists("seed") & exists("ytrue")) write.csv(c(warp_cover, warp_cover99), 
+                                                       file = paste0("csv/warp_cover/notap/wcov_",one_layer,"_",seed,"_",nmcmc,".csv"))
+      }
+    }
+
+  }
+
 }
 
 plot.krig <- function(fit, zz=fit$mean, Y=parent.frame()$Y, precs_pred=parent.frame()$precs_pred){
@@ -105,17 +124,30 @@ plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
   ubb <- apply(Ss, 1, function(x){quantile(x,0.995)}) #- y_avg
   lbb <- apply(Ss, 1, function(x){quantile(x,0.005)}) #- y_avg
   
-  if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), file = paste0("csv/logS/notap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
-  
   if(exists("y_hi")) emp_cover <- round(mean(y_hi > lb & y_hi < ub),3)
   if(exists("y_hi")) emp_cover99 <- round(mean(y_hi > lbb & y_hi < ubb),3)
   
   if(exists("ytrue")) emp_cover <- round(mean(ytrue > lb & ytrue < ub),3)
   if(exists("ytrue")) emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
-  if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), file = paste0("csv/MSE/notap/",one_layer,"_",seed,"_",nmcmc,".csv"))
   
-  if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), file = paste0("csv/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
-  
+  if(exists("taper_cov")){
+    if(taper_cov){
+      if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), 
+                                                     file = paste0("csv/logS/tap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
+      if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), 
+                                                     file = paste0("csv/MSE/tap/",one_layer,"_",seed,"_",nmcmc,".csv"))
+      if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), 
+                                                     file = paste0("csv/cover/tap/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
+    } else {
+      if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), 
+                                                     file = paste0("csv/logS/notap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
+      if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), 
+                                                     file = paste0("csv/MSE/notap/",one_layer,"_",seed,"_",nmcmc,".csv"))
+      if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), 
+                                                     file = paste0("csv/cover/notap/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
+    }
+  }
+
   plot(fit$x, fit$y, type="n",
        ylim = range(c(m, lb, ub, lbb, ubb, Y)), 
        main = paste0("est both,", if(exists("emp_cover")){emp_cover}, " ", if(exists("emp_cover99")){emp_cover99}))
@@ -150,7 +182,6 @@ plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
          col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
   
 }
-
 
 # Plot simulations of truth given the data
 plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
@@ -191,16 +222,20 @@ plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
   ubb <- apply(Ss, 1, function(x){quantile(x,0.995)}) #- y_avg
   lbb <- apply(Ss, 1, function(x){quantile(x,0.005)}) #- y_avg
   
-  if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), file = paste0("csv/logS/notap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
   
   if(exists("y_hi")) emp_cover <- round(mean(y_hi > lb & y_hi < ub),3)
   if(exists("y_hi")) emp_cover99 <- round(mean(y_hi > lbb & y_hi < ubb),3)
   
   if(exists("ytrue")) emp_cover <- round(mean(ytrue > lb & ytrue < ub),3)
   if(exists("ytrue")) emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
-  if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), file = paste0("csv/MSE/notap/",one_layer,"_",seed,"_",nmcmc,".csv"))
   
-  if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), file = paste0("csv/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  # Removed these .csv writes; just use plot.true with and without a tapered covariance matrix
+  # if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), 
+  #                                                file = paste0("csv/logS/notap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  # if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), 
+  #                                                file = paste0("csv/MSE/notap/",one_layer,"_",seed,"_",nmcmc,".csv"))
+  # if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), 
+  #                                                file = paste0("csv/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
   
   plot(fit$x, fit$y, type="n",
        ylim = range(c(m, lb, ub, lbb, ubb, Y)), 
@@ -275,8 +310,6 @@ plot.true.tau <- function(fit, S_e = fit$Sigma_hat, tolpower = -10,
     # Sx[,i] <- mvtnorm::rmvnorm(n = 1, mean = M, sigma = C, method = "chol")
   }
   
-  if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), file = paste0("csv/logS/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
-  
   m <- rowMeans(Ss) #- y_avg
   ub <- apply(Ss, 1, function(x){quantile(x,0.975)}) #- y_avg
   lb <- apply(Ss, 1, function(x){quantile(x,0.025)}) #- y_avg
@@ -288,9 +321,14 @@ plot.true.tau <- function(fit, S_e = fit$Sigma_hat, tolpower = -10,
   
   if(exists("ytrue")) emp_cover <- round(mean(ytrue > lb & ytrue < ub),3)
   if(exists("ytrue")) emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
-  if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), file = paste0("csv/MSE/tap/",one_layer,"_",seed,"_",nmcmc,".csv"))
   
-  if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), file = paste0("csv/tap/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  # removed these .csv writes; just use plot.true with and without a tapered covariance matrix
+  # if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), 
+  #                                                file = paste0("csv/logS/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  # if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), 
+  #                                                file = paste0("csv/MSE/tap/",one_layer,"_",seed,"_",nmcmc,".csv"))
+  # if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), 
+  #                                                file = paste0("csv/tap/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
 
   plot(fit$x, fit$y, type="n",
        ylim = range(c(m, lb, ub, lbb, ubb, Y)), 
