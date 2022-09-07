@@ -120,7 +120,7 @@ if(use_hi){
   Sigma_hat <- cov(Y)
 }
 
-if(taper_cov) Sigma_hat <- Sigma_hat * bohman(plgp:::distance(x), tau=tau_b)
+if(taper_cov) Sigma_hat <- Sigma_hat * bohman(sqrt(plgp:::distance(x)), tau=tau_b)
 
 par(mfrow=c(1,2))
 matplot(x,t(Y),type="l",col="gray")
@@ -159,7 +159,7 @@ v <- fitcov$v
 
 par(mfrow=c(1,2))
 plot.true(fitcov)
-if(!taper_cov) plot.true(fitcov, S_e = fitcov$Sigma_hat*bohman(plgp:::distance(x),tau = tau_b))
+if(!taper_cov) plot.true(fitcov, S_e = fitcov$Sigma_hat*bohman(sqrt(plgp:::distance(x)),tau = tau_b))
 
 if(!one_layer) plot.warp(fitcov)
 
