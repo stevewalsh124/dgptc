@@ -3,7 +3,7 @@
 # real data study
 
 vecchia <- F
-pmx <- T
+pmx <- F
 one_layer <- F
 
 if(one_layer) {source("../dgp.hm/R/logl_cov_1L.R")} else {source("../dgp.hm/R/logl_cov.R")}
@@ -35,9 +35,9 @@ cov_fn <- "matern"#"exp2"#
 
 tau_b <- 1
 nrun <- 16
-nmcmc <- 1000
-nburn <- 200
-kth <- 2
+nmcmc <- 11000
+nburn <- 1000
+kth <- 4
 
 bte <- 3 # cols 3-18 are low res
 
@@ -165,7 +165,7 @@ Lam_zi <- solve(Lam_z)
 #   Sigma_hat <- cov(Y)
 # }
 # 
-# if(taper_cov) Sigma_hat <- Sigma_hat * bohman(plgp:::distance(x), tau=tau_b)
+# if(taper_cov) Sigma_hat <- Sigma_hat * bohman(sqrt(plgp:::distance(x), tau=tau_b))
 # 
 # par(mfrow=c(1,2))
 # matplot(x,t(Y),type="l",col="gray")
@@ -203,7 +203,7 @@ lines(x, ((log10(y_pt)-temp_lm)-mean(y_un))/sd(y_un), col="orange")
 lines(x, ((log10(mu_z)-temp_lm)-mean(y_un))/sd(y_un), col="blue",lty=2)
 lines(x, ((log10(y_lo_avg)-temp_lm)-mean(y_un))/sd(y_un))
 
-if(!taper_cov) plot.true.combo(fitcov, S_e = fitcov$Sigma_hat*bohman(plgp:::distance(x),tau = tau_b))
+if(!taper_cov) plot.true.combo(fitcov, S_e = fitcov$Sigma_hat*bohman(sqrt(plgp:::distance(x),tau = tau_b)))
 lines(x, ((log10(y_hi)-temp_lm)-mean(y_un))/sd(y_un), col="red")
 lines(x, ((log10(y_pt)-temp_lm)-mean(y_un))/sd(y_un), col="orange")
 lines(x, ((log10(mu_z)-temp_lm)-mean(y_un))/sd(y_un), col="blue",lty=2)

@@ -8,7 +8,7 @@ one_layer <- F
 
 taper_cov <- T
 tau_b <- 0.1
-nmcmc <- 6000
+nmcmc <- 101000
 nburn <- 1000
 kth <- 5
 
@@ -20,10 +20,12 @@ source("../dgp.hm/R/predict.R")
 source("../dgp.hm/R/trim.R")
 source("../dgp.hm/R/vecchia.R")
 
-r <- 16 #number of runs
+r <- 100 #number of runs
 n <- 100 #number of points per run
 x <- seq(0,1,length.out=n)
-w <- x^2
+w <- x^3
+
+pdf(paste0("pdf/1D_toy_",r,"_",n,"_",nmcmc,".pdf"))
 
 # true mean and covariance
 S_true <- sin(4*pi*w)
@@ -75,3 +77,11 @@ if(!one_layer){
   plot.warp(fit)
   lines(x,w)
 }
+
+# study the (in)consistency/microergodicity of individual lengthscales vs their product
+par(mfrow=c(1,3))
+plot(fit$theta_w, type="l")
+plot(fit$theta_y, type="l")
+plot(fit$theta_y * fit$theta_w, type="l")
+
+dev.off()
