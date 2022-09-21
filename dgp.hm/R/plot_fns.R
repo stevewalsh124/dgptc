@@ -269,6 +269,7 @@ plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
   legend("bottomleft", legend = c("true", "sample avg", "UQ"), 
          col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
   
+  return(list(m=m, ub=ub, lb=lb, ubb=ubb, lbb=lbb, emp_cover=emp_cover, emp_cover99=emp_cover99))
 }
 
 # Plot simulations of truth given the data, differing tau
