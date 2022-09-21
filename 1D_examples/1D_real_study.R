@@ -23,7 +23,7 @@ library(mvtnorm) #rmvnorm
 library(plgp) #distance (which is squared distances)
 
 # Taper the covariance matrix before the MCMC fit?
-taper_cov <- F
+taper_cov <- T
 
 # Do a kriging step?
 krig <- F
@@ -38,8 +38,8 @@ cov_fn <- "matern"#"exp2"#
 
 tau_b <- 1
 nrun <- 16
-nmcmc <- 12000
-nburn <- 2000
+nmcmc <- 12001
+nburn <- 2001
 kth <- 2
 
 bte <- 3 # cols 3-18 are low res
@@ -64,8 +64,10 @@ pk2 <- read.table(paste0("Mira-Titan-IV-data/Mira-Titan-2021/STEP",step,"/pk_M",
                          if(i<100){"0"},if(i<10){"0"},i,"_test.dat"))
 
 # subtract a linear model
-temp_avg <- rowMeans(log10(pk2[index_list$lowres.ix,3:18]))
-temp_lm <- lm(temp_avg ~ log10(pk2[index_list$lowres.ix,1]))$fitted.values
+# temp_avg <- rowMeans(log10(pk2[index_list$lowres.ix,3:18]))
+# temp_lm <- lm(temp_avg ~ log10(pk2[index_list$lowres.ix,1]))$fitted.values
+load("rda/avg_of_wt_avg_10.rda")
+temp_lm <- avg_loess[index_list$lowres.ix]
 Y <- t(apply(t(log10(pk2[index_list$lowres.ix,3:18])),1,function(x){x-temp_lm}))
 
 # wavenumber is X, a particular lowres run in Y
