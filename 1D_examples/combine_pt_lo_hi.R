@@ -40,10 +40,10 @@ tolpower <- -10
 cov_fn <- "matern"#"exp2"#
 
 tau_b <- 1
-nrun <- 16
-nmcmc <- 11004
-nburn <- 1004
-kth <- 4
+nrun <- 16 # number of low res runs; to adjust precision for average
+nmcmc <- 6000
+nburn <- 1000
+kth <- 5
 
 bte <- 3 # cols 3-18 are low res
 
@@ -59,7 +59,7 @@ load("Mira-Titan-IV-data/precision_and_indexes.Rdata")
 
 n <- length(k)
 
-precs_lo <- ifelse(1:n %in% index_list$lowres.ix, prec_lowres, 0)
+precs_lo <- ifelse(1:n %in% index_list$lowres.ix, prec_lowres, 0) * nrun
 precs_hi <- ifelse(1:n %in% index_list$highres.ix, prec_highres, 0)
 precs_pt <- ifelse(1:n %in% index_list$pert.ix, 10000, 0)
 
@@ -161,7 +161,17 @@ if(krig) {
 v <- fitcov$v
 
 par(mfrow=c(1,1))
+fitcov <- est.true.combo(fitcov)
+
 plot.true.combo(fitcov)
+lines(x, ((log10(y_hi)-temp_lm)-mean(y_un))/sd(y_un), col="red")
+lines(x, ((log10(y_pt)-temp_lm)-mean(y_un))/sd(y_un), col="orange")
+lines(x, ((log10(mu_z)-temp_lm)-mean(y_un))/sd(y_un), col="blue",lty=2)
+lines(x, ((log10(y_lo_avg)-temp_lm)-mean(y_un))/sd(y_un))
+
+plot.true.combo(fitcov, xlim = range(fitcov$x[index_list$lowres.ix]), 
+                ylim=range(fitcov$lbb[index_list$lowres.ix],fitcov$ubb[index_list$lowres.ix]),
+                legend.loc = "bottomright")
 lines(x, ((log10(y_hi)-temp_lm)-mean(y_un))/sd(y_un), col="red")
 lines(x, ((log10(y_pt)-temp_lm)-mean(y_un))/sd(y_un), col="orange")
 lines(x, ((log10(mu_z)-temp_lm)-mean(y_un))/sd(y_un), col="blue",lty=2)

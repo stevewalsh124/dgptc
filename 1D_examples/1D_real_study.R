@@ -38,9 +38,9 @@ cov_fn <- "matern"#"exp2"#
 
 tau_b <- 1
 nrun <- 16
-nmcmc <- 12001
-nburn <- 2001
-kth <- 2
+nmcmc <- 10000
+nburn <- 2000
+kth <- 4
 
 bte <- 3 # cols 3-18 are low res
 
@@ -160,6 +160,7 @@ if(krig) {
 v <- fitcov$v
 
 par(mfrow=c(1,2))
+fitcov <- est.true(fitcov)
 plot.true(fitcov)
 if(!taper_cov) plot.true(fitcov, S_e = fitcov$Sigma_hat*bohman(sqrt(plgp:::distance(x)),tau = tau_b))
 

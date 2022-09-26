@@ -86,7 +86,7 @@ plot.krig <- function(fit, zz=fit$mean, Y=parent.frame()$Y, precs_pred=parent.fr
 }
 
 # Plot simulations of truth given the data
-plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
+est.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
                       Y = parent.frame()$Y, nrun = nrow(Y)){
   S_ei <- matrix.Moore.Penrose2(S_e, tolp = tolpower)
   S_ei <- (S_ei+t(S_ei))/2
@@ -147,7 +147,25 @@ plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
                                                      file = paste0("csv/cover/notap/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
     }
   }
+  
+  return(append(fit, list(m=m, ub=ub, lb=lb, ubb=ubb, lbb=lbb, emp_cover=emp_cover, emp_cover99=emp_cover99, Ms=Ms, Ss=Ss, Cs=Cs)))
+  
+}
 
+plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
+                      Y = parent.frame()$Y, nrun = nrow(Y)){
+  
+  m=fit$m
+  ub=fit$ub
+  lb=fit$lb
+  ubb=fit$ubb
+  lbb=fit$lbb
+  emp_cover=fit$emp_cover
+  emp_cover99=fit$emp_cover99
+  Ms=fit$Ms
+  Ss=fit$Ss
+  Cs=fit$Cs
+  
   plot(fit$x, fit$y, type="n",
        ylim = range(c(m, lb, ub, lbb, ubb, Y)), 
        main = paste0("est both,", if(exists("emp_cover")){emp_cover}, " ", if(exists("emp_cover99")){emp_cover99}))
@@ -184,7 +202,7 @@ plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
 }
 
 # Plot simulations of truth given the data
-plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
+est.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
                       Y = parent.frame()$Y, nrun = nrow(Y)){
   S_ei <- matrix.Moore.Penrose2(S_e, tolp = tolpower)
   S_ei <- (S_ei+t(S_ei))/2
@@ -222,7 +240,6 @@ plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
   ubb <- apply(Ss, 1, function(x){quantile(x,0.995)}) #- y_avg
   lbb <- apply(Ss, 1, function(x){quantile(x,0.005)}) #- y_avg
   
-  
   if(exists("y_hi")) emp_cover <- round(mean(y_hi > lb & y_hi < ub),3)
   if(exists("y_hi")) emp_cover99 <- round(mean(y_hi > lbb & y_hi < ubb),3)
   
@@ -236,10 +253,25 @@ plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
   #                                                file = paste0("csv/MSE/notap/",one_layer,"_",seed,"_",nmcmc,".csv"))
   # if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), 
   #                                                file = paste0("csv/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
+  return(append(fit, list(m=m, ub=ub, lb=lb, ubb=ubb, lbb=lbb, emp_cover=emp_cover, emp_cover99=emp_cover99, Ms=Ms, Ss=Ss, Cs=Cs)))
+  
+}
+
+plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
+                            Y = parent.frame()$Y, nrun = nrow(Y), legend.loc="bottomright",...){
+  m=fit$m
+  ub=fit$ub
+  lb=fit$lb
+  ubb=fit$ubb
+  lbb=fit$lbb
+  emp_cover=fit$emp_cover
+  emp_cover99=fit$emp_cover99
+  Ms=fit$Ms
+  Ss=fit$Ss
+  Cs=fit$Cs
   
   plot(fit$x, fit$y, type="n",
-       ylim = range(c(m, lb, ub, lbb, ubb, Y)), 
-       main = paste0("est both,", if(exists("emp_cover")){emp_cover}, " ", if(exists("emp_cover99")){emp_cover99}))
+       main = paste0("est both,", if(exists("emp_cover")){emp_cover}, " ", if(exists("emp_cover99")){emp_cover99}), ...)
   
   # for (i in 1:nrun) lines(fit$x, Y[i,], col="gray")
   # if(exists("y_hi")) lines(fit$x, y_hi, lwd=1.5, col="red")
@@ -250,7 +282,7 @@ plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
   lines(fit$x, ub , col="blue", lty=2)
   lines(fit$x, lbb , col="darkblue", lty=2)
   lines(fit$x, ubb , col="darkblue", lty=2)
-  legend("bottomright", legend = c("true", "sample avg", "UQ"), 
+  legend(legend.loc, legend = c("true", "sample avg", "UQ"), 
          col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
   
   # Using law of total expectation and variance instead
@@ -258,7 +290,7 @@ plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
   C_bar <- matrix(rowMeans(Cs),  length(fit$x),  length(fit$x))
   cov_mut <- cov(t(Ms))
   
-  plot(x, mu_bar, type="n", main = "law of total E & V; MPI version", col="blue")
+  plot(x, mu_bar, type="n", main = "law of total E & V; MPI version", col="blue", ...)
   # for (i in 1:nrun) lines(fit$x, Y[i,], col="gray")
   lines(x, mu_bar, col="blue")
   # if(exists("y_hi")) lines(x, y_hi, col="red")
@@ -266,10 +298,9 @@ plot.true.combo <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
   lines(x, fit$y, lty=2)
   lines(x, mu_bar - 2*sqrt(diag(C_bar+cov_mut)), col="blue")
   lines(x, mu_bar + 2*sqrt(diag(C_bar+cov_mut)), col="blue")
-  legend("bottomleft", legend = c("true", "sample avg", "UQ"), 
+  legend(legend.loc, legend = c("true", "sample avg", "UQ"), 
          col=c("red","black", "blue"), lty=c(1,2,1), lwd=c(2,2,1))
   
-  return(list(m=m, ub=ub, lb=lb, ubb=ubb, lbb=lbb, emp_cover=emp_cover, emp_cover99=emp_cover99))
 }
 
 # Plot simulations of truth given the data, differing tau
