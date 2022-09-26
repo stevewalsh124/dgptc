@@ -159,7 +159,7 @@ if(krig) {
 
 v <- fitcov$v
 
-par(mfrow=c(1,2))
+par(mfrow=c(1,1))
 fitcov <- est.true(fitcov)
 plot.true(fitcov)
 if(!taper_cov) plot.true(fitcov, S_e = fitcov$Sigma_hat*bohman(sqrt(plgp:::distance(x)),tau = tau_b))
