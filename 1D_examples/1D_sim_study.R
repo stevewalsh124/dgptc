@@ -37,8 +37,8 @@ seed <- 1
 cov_fn <- "matern"#"exp2"#
 
 nrun <- 16
-nmcmc <- 3000
-nburn <- 1000
+nmcmc <- 12000
+nburn <- 2000
 kth <- 5
 tau_b <- .1
 

@@ -38,9 +38,9 @@ cov_fn <- "matern"#"exp2"#
 
 tau_b <- 1
 nrun <- 16
-nmcmc <- 10000
+nmcmc <- 12000
 nburn <- 2000
-kth <- 4
+kth <- 5
 
 bte <- 3 # cols 3-18 are low res
 
