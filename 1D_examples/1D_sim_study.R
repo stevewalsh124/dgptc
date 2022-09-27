@@ -23,27 +23,32 @@ library(plgp) #distance (which is squared distances)
 
 # Should the true error's cov mtx be diagonal or dense?
 true_diag <- F
+
 # Should the observations' noise be modeled as diagonal?
 model_diag <- F
 var_adj <- 1
+
 # Use the true covariance matrix for sigma hat?
 use_true_cov <- F
+
 # Taper the covariance matrix before the MCMC loop?
 taper_cov <- F
+tau_b <- .1
 
+# Don't do this; use est.true* instead
 krig <- F
-
-tolpower <- -10
 
 seed <- 2
 
 cov_fn <- "matern"#"exp2"#
 
+# Number of computer experiment runs to simulate
 nrun <- 16
+
+# MCMC info, including thinning every kth
 nmcmc <- 12000
 nburn <- 2000
 kth <- 5
-tau_b <- .1
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -53,13 +58,15 @@ if(length(args) > 0)
 pdf(paste0("pdf/simstudydgpact_",nmcmc,"_",nrun,
            if(true_diag){"_TD"}, if(model_diag){paste0("_MD", var_adj)},
            if(use_true_cov){"_UTC"},
-           if(taper_cov){"_tpr"}, if(pmx){"_pmx"}, if(vecchia){"_vec"},
+           if(taper_cov){paste0("_tpr",tau_b)}, if(pmx){"_pmx"}, if(vecchia){"_vec"},
            if(one_layer){"_1L"},"_",cov_fn,"_",seed,".pdf"))
 
-bte <- 3 # cols 3-18 are low res
-
+# The step number, corresponding to a particular redshift
+# steps <- c(163, 189, 247, 300, 347, 401, 453, 499)
 step <- 499
-# Model 1, choose from 000-111
+
+# Model 1, choose from 000-111; exploring the 
+# 8-dimensional cosmological parameter space
 i <- 1
 
 pk2 <- read.table(paste0("Mira-Titan-IV-data/Mira-Titan-2021/STEP",step,"/pk_M",
@@ -70,6 +77,7 @@ precs_hi <- prec_highres[index_list$lowres.ix]
 
 # wavenumber is X, a particular lowres run in Y
 x <- log10(k[index_list$lowres.ix])
+# bte <- 3 # band to evaluate; cols 3-18 are low res
 # y <- log10(pk2[index_list$lowres.ix, bte])
 # Y <- log10(pk2[index_list$lowres.ix, 3:18])
 x <- (x - min(x))/(max(x)-min(x))
@@ -189,7 +197,6 @@ if(krig) plot.krig(fitcov, Y = Y_sim)
 fitcov <- est.true(fitcov, Y = Y_sim)
 plot.true(fitcov, Y=Y_sim) # writes csvs of the emp coverage (for both tapering and no tapering)
 # if(!taper_cov) plot.true.tau(fitcov, Y=Y_sim, unif_tau = tau_b) #no longer writes csvs
-
 
 if(!one_layer) plot.warp(fitcov)
 

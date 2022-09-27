@@ -47,16 +47,28 @@ plot.warp <- function(fit, wl = 1, wh = length(fit$x), ref.scale = 1){
     if(exists("taper_cov")){
       if(taper_cov){
         if(exists("seed") & exists("ytrue")) write.csv(c(warp_cover, warp_cover99), 
-                                                       file = paste0("csv/warp_cover/tap/wcov_",one_layer,"_",seed,"_",nmcmc,".csv"))
+                                                       file = paste0("csv/warp_cover/tap/wcov_",nmcmc,"_",nrun,
+                                                                     if(true_diag){"_TD"}, 
+                                                                     if(model_diag){paste0("_MD", var_adj)},
+                                                                     if(use_true_cov){"_UTC"},
+                                                                     if(taper_cov){paste0("_tpr",tau_b)}, 
+                                                                     if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                     if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
       } else {
         if(exists("seed") & exists("ytrue")) write.csv(c(warp_cover, warp_cover99), 
-                                                       file = paste0("csv/warp_cover/notap/wcov_",one_layer,"_",seed,"_",nmcmc,".csv"))
+                                                       file = paste0("csv/warp_cover/notap/wcov_",
+                                                                     nmcmc,"_",nrun,
+                                                                     if(true_diag){"_TD"}, 
+                                                                     if(model_diag){paste0("_MD", var_adj)},
+                                                                     if(use_true_cov){"_UTC"},
+                                                                     if(taper_cov){paste0("_tpr",tau_b)}, 
+                                                                     if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                     if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
       }
     }
-
   }
-
 }
+
 
 plot.krig <- function(fit, zz=fit$mean, Y=parent.frame()$Y, precs_pred=parent.frame()$precs_pred){
   
@@ -133,18 +145,54 @@ est.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
   if(exists("taper_cov")){
     if(taper_cov){
       if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), 
-                                                     file = paste0("csv/logS/tap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
+                                                     file = paste0("csv/logS/tap/logscore_",nmcmc,"_",nrun,
+                                                                   if(true_diag){"_TD"}, 
+                                                                   if(model_diag){paste0("_MD", var_adj)},
+                                                                   if(use_true_cov){"_UTC"},
+                                                                   if(taper_cov){paste0("_tpr",tau_b)}, 
+                                                                   if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                   if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
       if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), 
-                                                     file = paste0("csv/MSE/tap/",one_layer,"_",seed,"_",nmcmc,".csv"))
+                                                     file = paste0("csv/MSE/tap/",nmcmc,"_",nrun,
+                                                                   if(true_diag){"_TD"}, 
+                                                                   if(model_diag){paste0("_MD", var_adj)},
+                                                                   if(use_true_cov){"_UTC"},
+                                                                   if(taper_cov){paste0("_tpr",tau_b)}, 
+                                                                   if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                   if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
       if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), 
-                                                     file = paste0("csv/cover/tap/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
+                                                     file = paste0("csv/cover/tap/emp_cover_",nmcmc,"_",nrun,
+                                                                   if(true_diag){"_TD"}, 
+                                                                   if(model_diag){paste0("_MD", var_adj)},
+                                                                   if(use_true_cov){"_UTC"},
+                                                                   if(taper_cov){paste0("_tpr",tau_b)}, 
+                                                                   if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                   if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
     } else {
       if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), 
-                                                     file = paste0("csv/logS/notap/logscore_",one_layer,"_",seed,"_",nmcmc,".csv"))
+                                                     file = paste0("csv/logS/notap/logscore_",nmcmc,"_",nrun,
+                                                                   if(true_diag){"_TD"}, 
+                                                                   if(model_diag){paste0("_MD", var_adj)},
+                                                                   if(use_true_cov){"_UTC"},
+                                                                   if(taper_cov){paste0("_tpr",tau_b)}, 
+                                                                   if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                   if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
       if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), 
-                                                     file = paste0("csv/MSE/notap/",one_layer,"_",seed,"_",nmcmc,".csv"))
+                                                     file = paste0("csv/MSE/notap/",nmcmc,"_",nrun,
+                                                                   if(true_diag){"_TD"}, 
+                                                                   if(model_diag){paste0("_MD", var_adj)},
+                                                                   if(use_true_cov){"_UTC"},
+                                                                   if(taper_cov){paste0("_tpr",tau_b)}, 
+                                                                   if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                   if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
       if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), 
-                                                     file = paste0("csv/cover/notap/emp_cover_",one_layer,"_",seed,"_",nmcmc,".csv"))
+                                                     file = paste0("csv/cover/notap/emp_cover_",nmcmc,"_",nrun,
+                                                                   if(true_diag){"_TD"}, 
+                                                                   if(model_diag){paste0("_MD", var_adj)},
+                                                                   if(use_true_cov){"_UTC"},
+                                                                   if(taper_cov){paste0("_tpr",tau_b)}, 
+                                                                   if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                   if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
     }
   }
   
