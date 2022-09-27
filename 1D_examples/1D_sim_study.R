@@ -23,6 +23,9 @@ library(plgp) #distance (which is squared distances)
 
 # Should the true error's cov mtx be diagonal or dense?
 true_diag <- F
+# Should the observations' noise be modeled as diagonal?
+model_diag <- F
+var_adj <- 1
 # Use the true covariance matrix for sigma hat?
 use_true_cov <- F
 # Taper the covariance matrix before the MCMC loop?
@@ -32,7 +35,7 @@ krig <- F
 
 tolpower <- -10
 
-seed <- 1
+seed <- 2
 
 cov_fn <- "matern"#"exp2"#
 
@@ -48,7 +51,7 @@ if(length(args) > 0)
     eval(parse(text=args[[i]]))
 
 pdf(paste0("pdf/simstudydgpact_",nmcmc,"_",nrun,
-           if(true_diag){"_TD"},
+           if(true_diag){"_TD"}, if(model_diag){paste0("_MD", var_adj)},
            if(use_true_cov){"_UTC"},
            if(taper_cov){"_tpr"}, if(pmx){"_pmx"}, if(vecchia){"_vec"},
            if(one_layer){"_1L"},"_",cov_fn,"_",seed,".pdf"))
@@ -84,8 +87,8 @@ Sigma <- exp(-D) + diag(eps, length(x))
 
 # first layer
 set.seed(seed)
-load("rda/warp_true.rda")
-w <- warp_true#c(rmvnorm(1, mean=x, sigma=Sigma))
+# load("rda/warp_true.rda")
+w <- c(rmvnorm(1, mean=x, sigma=Sigma))#warp_true#
 
 # second layer
 Dw <- plgp:::distance(c(w))
@@ -149,7 +152,11 @@ if(true_diag){
 if(use_true_cov) {
   Sigma_hat <- Cov_true
 } else {
-  Sigma_hat <- cov(Y_sim)
+  if(model_diag){
+    Sigma_hat <- var_adj*diag(1/precc)
+  } else {
+    Sigma_hat <- cov(Y_sim)
+  }
 }
 
 if(taper_cov) Sigma_hat <- Sigma_hat * bohman(sqrt(plgp:::distance(x)), tau_b)
