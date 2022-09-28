@@ -200,6 +200,63 @@ est.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
   
 }
 
+
+
+# Plot simulations of truth given the data
+est.true.truecovs <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
+                     Y = parent.frame()$Y, Sigma_s = parent.frame()$Sigma_s, nrun = nrow(Y)){
+  S_ei <- matrix.Moore.Penrose2(S_e, tolp = tolpower)
+  S_ei <- (S_ei+t(S_ei))/2
+  
+  Cs <- matrix(NA, length(fit$x)^2, fit$nmcmc)
+  Ms <- matrix(NA, length(fit$x), fit$nmcmc)
+  Ss <- St <- Sw <- Sx <- matrix(NA, length(fit$x), fit$nmcmc*ne)
+  
+  S_si <- solve(Sigma_s)
+  S_si <- (S_si+t(S_si))/2
+  
+  C <- Cs[,i] <- solve(S_si + S_ei)
+  C <- (C+t(C))/2
+  M <- Ms[,i] <- C %*% S_ei %*% fit$y
+  
+  Ss <- t(mvtnorm::rmvnorm(n = fit$nmcmc, mean = M, sigma = C, method = "eigen"))
+  
+  m <- rowMeans(Ss) #- y_avg
+  ub <- apply(Ss, 1, function(x){quantile(x,0.975)}) #- y_avg
+  lb <- apply(Ss, 1, function(x){quantile(x,0.025)}) #- y_avg
+  ubb <- apply(Ss, 1, function(x){quantile(x,0.995)}) #- y_avg
+  lbb <- apply(Ss, 1, function(x){quantile(x,0.005)}) #- y_avg
+  
+  if(exists("y_hi")) emp_cover <- round(mean(y_hi > lb & y_hi < ub),3)
+  if(exists("y_hi")) emp_cover99 <- round(mean(y_hi > lbb & y_hi < ubb),3)
+  
+  if(exists("ytrue")) emp_cover <- round(mean(ytrue > lb & ytrue < ub),3)
+  if(exists("ytrue")) emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
+  
+  if(exists("taper_cov")){
+
+      if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), 
+                                                     file = paste0("csv/logS/notap/logscore_",nmcmc,"_",nrun,
+                                                                   if(use_both_true_covs){"_UBTC"},
+                                                                   if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                   if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
+      if(exists("seed") & exists("ytrue")) write.csv(mean((m-ytrue)^2), 
+                                                     file = paste0("csv/MSE/notap/",nmcmc,"_",nrun,
+                                                                   if(use_both_true_covs){"_UBTC"},
+                                                                   if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                   if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
+      if(exists("seed") & exists("ytrue")) write.csv(c(emp_cover, emp_cover99), 
+                                                     file = paste0("csv/cover/notap/emp_cover_",nmcmc,"_",nrun,
+                                                                   if(use_both_true_covs){"_UBTC"},
+                                                                   if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                   if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
+  }
+  
+  return(append(fit, list(m=m, ub=ub, lb=lb, ubb=ubb, lbb=lbb, emp_cover=emp_cover, emp_cover99=emp_cover99, Ms=Ms, Ss=Ss, Cs=Cs)))
+  
+}
+
+
 plot.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
                       Y = parent.frame()$Y, nrun = nrow(Y)){
   

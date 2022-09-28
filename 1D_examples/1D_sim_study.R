@@ -26,19 +26,23 @@ true_diag <- F
 
 # Should the observations' noise be modeled as diagonal?
 model_diag <- F
-var_adj <- 1
+var_adj <- 25
 
 # Use the true covariance matrix for sigma hat?
-use_true_cov <- F
+use_true_cov <- T
+
+# Use both the true cov for Sigma hat as well as Sigma_S
+use_both_true_covs <- T
+if(use_both_true_covs) use_true_cov <- T
 
 # Taper the covariance matrix before the MCMC loop?
 taper_cov <- F
-tau_b <- .1
+tau_b <- 1
 
 # Don't do this; use est.true* instead
 krig <- F
 
-seed <- 2
+seed <- 1
 
 cov_fn <- "matern"#"exp2"#
 
@@ -57,7 +61,7 @@ if(length(args) > 0)
 
 pdf(paste0("pdf/simstudydgpact_",nmcmc,"_",nrun,
            if(true_diag){"_TD"}, if(model_diag){paste0("_MD", var_adj)},
-           if(use_true_cov){"_UTC"},
+           if(use_true_cov){"_UTC"}, if(use_both_true_covs){"_UBTC"},
            if(taper_cov){paste0("_tpr",tau_b)}, if(pmx){"_pmx"}, if(vecchia){"_vec"},
            if(one_layer){"_1L"},"_",cov_fn,"_",seed,".pdf"))
 
@@ -95,8 +99,8 @@ Sigma <- exp(-D) + diag(eps, length(x))
 
 # first layer
 set.seed(seed)
-# load("rda/warp_true.rda")
-w <- c(rmvnorm(1, mean=x, sigma=Sigma))#warp_true#
+load("rda/warp_true.rda")
+w <- warp_true#c(rmvnorm(1, mean=x, sigma=Sigma))#
 
 # second layer
 Dw <- plgp:::distance(c(w))
@@ -194,10 +198,36 @@ v <- fitcov$v
 
 par(mfrow=c(1,1))
 if(krig) plot.krig(fitcov, Y = Y_sim)
-fitcov <- est.true(fitcov, Y = Y_sim)
+if(use_both_true_covs){
+  fitcov <- est.true.truecovs(fitcov, Y = Y_sim, Sigma_s = Sigma_s)
+} else {
+  fitcov <- est.true(fitcov, Y = Y_sim)
+}
 plot.true(fitcov, Y=Y_sim) # writes csvs of the emp coverage (for both tapering and no tapering)
 # if(!taper_cov) plot.true.tau(fitcov, Y=Y_sim, unif_tau = tau_b) #no longer writes csvs
 
-if(!one_layer) plot.warp(fitcov)
+if(!one_layer){
+  # This modifies the true warping in a Procrustes-type transformation
+  # So that it is rescaled, and rotated and with endpoints at 0 and 1
+  wl = 1; wh = length(fitcov$x); ref.scale = 1
+
+  # Second: undo scale
+  # find the length of the deformed reference vector
+  y.ref <- w[wl] - w[wh]
+  scale.y <- sqrt(t(y.ref)%*%y.ref)
+  # numerator comes from length of vector with points zz, zo
+  scale.back =  c(ref.scale/scale.y)#1/sqrt(sum(y.translate[,2]^2))
+  y.rot.scale = w * scale.back
+  
+  # Third: Translate back
+  translation <- y.rot.scale[wl] - x[wl]
+  y.rot.scale.tran <- y.rot.scale - translation
+  warp_true <- y.rot.scale.tran
+  
+  # flip the graph if necessary in either direction
+  # remove the reflections
+  if(warp_true[wl]>warp_true[wh]) {warp_true <- (warp_true-warp_true[wl])/(warp_true[wh]-warp_true[wl])}
+  plot.warp(fitcov)
+}
 
 dev.off()
