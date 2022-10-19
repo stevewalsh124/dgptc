@@ -11,6 +11,7 @@ source("../dgp.hm/R/bohman.R")
 source("../dgp.hm/R/predict.R")
 source("../dgp.hm/R/trim.R")
 source("../dgp.hm/R/vecchia.R")
+source("get_matern.R")
 
 # load the precision data (k, prec_highres, prec_lowres, index_list)
 load("Mira-Titan-IV-data/precision_and_indexes.Rdata")
@@ -28,11 +29,14 @@ true_diag <- F
 model_diag <- F
 var_adj <- 25
 
+# Model the correlated errors as Matern?
+matern_errors <- T
+
 # Use the true covariance matrix for sigma hat?
-use_true_cov <- T
+use_true_cov <- F
 
 # Use both the true cov for Sigma hat as well as Sigma_S
-use_both_true_covs <- T
+use_both_true_covs <- F
 if(use_both_true_covs) use_true_cov <- T
 
 # Taper the covariance matrix before the MCMC loop?
@@ -61,6 +65,7 @@ if(length(args) > 0)
 
 pdf(paste0("pdf/simstudydgpact_",nmcmc,"_",nrun,
            if(true_diag){"_TD"}, if(model_diag){paste0("_MD", var_adj)},
+           if(matern_errors){"_matern_errors"},
            if(use_true_cov){"_UTC"}, if(use_both_true_covs){"_UBTC"},
            if(taper_cov){paste0("_tpr",tau_b)}, if(pmx){"_pmx"}, if(vecchia){"_vec"},
            if(one_layer){"_1L"},"_",cov_fn,"_",seed,".pdf"))
@@ -99,8 +104,8 @@ Sigma <- exp(-D) + diag(eps, length(x))
 
 # first layer
 set.seed(seed)
-load("rda/warp_true.rda")
-w <- warp_true#c(rmvnorm(1, mean=x, sigma=Sigma))#
+# load("rda/warp_true.rda")
+w <- c(rmvnorm(1, mean=x, sigma=Sigma))#warp_true#
 
 # second layer
 Dw <- plgp:::distance(c(w))
@@ -167,7 +172,11 @@ if(use_true_cov) {
   if(model_diag){
     Sigma_hat <- var_adj*diag(1/precc)
   } else {
-    Sigma_hat <- cov(Y_sim)
+    if(matern_errors){
+      Sigma_hat <- get_matern(x, Y_sim - colMeans(Y_sim), nmcmc=1500, nburn=500)
+      } else { 
+        Sigma_hat <- cov(Y_sim)
+      }
   }
 }
 
@@ -231,3 +240,10 @@ if(!one_layer){
 }
 
 dev.off()
+
+save.image(file = paste0("rda/1D_sim_",nmcmc,"_",nrun,
+                         if(true_diag){"_TD"}, if(model_diag){paste0("_MD", var_adj)},
+                         if(matern_errors){"_matern_errors"},
+                         if(use_true_cov){"_UTC"}, if(use_both_true_covs){"_UBTC"},
+                         if(taper_cov){paste0("_tpr",tau_b)}, if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                         if(one_layer){"_1L"},"_",cov_fn,"_",seed,".rda"))
