@@ -45,6 +45,8 @@ plot.warp <- function(fit, wl = 1, wh = length(fit$x), ref.scale = 1){
     warp_cover <- round(mean(warp_true > w_lb & warp_true < w_ub),3)
     warp_cover99 <- round(mean(warp_true > w_lbb & warp_true < w_ubb),3)
     if(exists("taper_cov")){
+      if(!dir.exists("csv/warp_cover/tap")) dir.create("csv/warp_cover/tap", recursive = T)
+      if(!dir.exists("csv/warp_cover/notap")) dir.create("csv/warp_cover/notap", recursive = T)
       if(taper_cov){
         if(exists("seed") & exists("ytrue")) write.csv(c(warp_cover, warp_cover99), 
                                                        file = paste0("csv/warp_cover/tap/wcov_",nmcmc,"_",nrun,
@@ -145,6 +147,12 @@ est.true <- function(fit, S_e = fit$Sigma_hat, ne = 1, tolpower = -10,
   if(exists("ytrue")) emp_cover99 <- round(mean(ytrue > lbb & ytrue < ubb),3)
   
   if(exists("taper_cov")){
+    if(!dir.exists("csv/logS/tap")) dir.create("csv/logS/tap", recursive = T)
+    if(!dir.exists("csv/MSE/tap")) dir.create("csv/MSE/tap", recursive = T)
+    if(!dir.exists("csv/cover/tap")) dir.create("csv/cover/tap", recursive = T)
+    if(!dir.exists("csv/logS/notap")) dir.create("csv/logS/notap", recursive = T)
+    if(!dir.exists("csv/MSE/notap")) dir.create("csv/MSE/notap", recursive = T)
+    if(!dir.exists("csv/cover/notap")) dir.create("csv/cover/notap", recursive = T)
     if(taper_cov){
       if(exists("seed") & exists("ytrue")) write.csv(logs_sample(y = ytrue, dat = Ss), 
                                                      file = paste0("csv/logS/tap/logscore_",nmcmc,"_",nrun,
