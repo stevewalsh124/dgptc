@@ -12,19 +12,8 @@ set.seed(1)
 G <- 11 # number of grid values to try: 0.0, 0.1, ..., 1
 MC <- 20 # number of MC for each grid value
 
-#!#!# this is hacky; trying to get joint G*MC 
-# after removing 
-n <- G*(MC*1.15) 
+n <- G*MC 
 xx <- lhs::randomLHS(n, 8)
-
-# rm design values outside of joint range for w_0 and w_a
-w_0 <- xx[,6]*(-0.7--1.3)+-1.3
-w_a <- xx[,7]*(1.28--1.73)+-1.73
-ind1 <- w_0 + w_a < -0.0081
-ind2 <- (-w_0-w_a)^(1/4) < 1.29 & (-w_0-w_a)^(1/4) > 0.3
-xx <- xx[ind1 & ind2,]  #!#!#
-if(nrow(xx) < G*MC) stop("do more runs...")
-xx <- xx[1:(G*MC),]
 
 grid <- rep(seq(0, 1, length.out=G), each=MC)
 
@@ -41,56 +30,19 @@ sigma_8 <- xxx[,3]*(0.9-0.7)+0.7
 h <- xxx[,4]*(0.85-0.55)+0.55
 n_s <- xxx[,5]*(1.05-0.85)+0.85
 w_0 <- xxx[,6]*(-0.7--1.3)+-1.3
-w_a <- xxx[,7]*(1.28--1.73)+-1.73
+f_wa0 <- xxx[,7]*(1.2899999-0.3000001)+0.3000001 # f(w0, wa) = -(w_0+w_a)^(1/4)
+w_a <- -f_wa0^4 - w_0
 omega_v <- xxx[,8]*(0.01-0.0)+0.0
 z <- 0
 
 xstar <- cbind(omega_m, omega_b, sigma_8, h, n_s, w_0, w_a, omega_v, z)
 
-# find which design points will make bad cosmologies
-ind1 <- w_0 + w_a < -0.0081
-ind2 <- (-w_0-w_a)^(1/4) < 1.29 & (-w_0-w_a)^(1/4) > 0.3
-inds <- which(!(ind1 & ind2))
-
-# randomly replace w_0 or w_a but keep griddedness
-for (ff in 1:length(inds)) {
-  fff <- inds[ff]
-  w_0 <- xstar[fff,"w_0"]
-  w_a <- xstar[fff,"w_a"]
-  ind1 <- w_0 + w_a < -0.0081
-  ind2 <- (-w_0-w_a)^(1/4) < 1.29 & (-w_0-w_a)^(1/4) > 0.3
-  if(fff > 1100 & fff <= 1320){
-    # fix w_0, change w_a
-    while(!ind1 | !ind2){
-      w_a <- runif(1)*(1.28--1.73)+-1.73
-      ind1 <- w_0 + w_a < -0.0081
-      ind2 <- (-w_0-w_a)^(1/4) < 1.29 & (-w_0-w_a)^(1/4) > 0.3
-    }
-    xstar[fff,"w_a"] <- w_a
-    
-  } else {
-    
-    if(fff > 1320 & fff <= 1540){
-      while (!ind1 | !ind2) {
-        # fix w_a, change w_0
-        w_0 <- runif(1)*(-0.7--1.3)+-1.3
-        ind1 <- w_0 + w_a < -0.0081
-        ind2 <- (-w_0-w_a)^(1/4) < 1.29 & (-w_0-w_a)^(1/4) > 0.3
-      }
-      xstar[fff,"w_0"] <- w_0
-      
-    } else {
-      stop("something is wrong, should only be changing w_0 or w_a")
-    }
-  }
-}
-
 # ensure all design points now make good cosmologies
 w_a <- xstar[,"w_a"]
 w_0 <- xstar[,"w_0"]
-ind1 <- w_0 + w_a < -0.0081
+ind1 <- w_0 + w_a < -0.008099
 ind2 <- (-w_0-w_a)^(1/4) < 1.29 & (-w_0-w_a)^(1/4) > 0.3
-inds <- which(!(ind1 & ind2))
+(inds <- which(!(ind1 & ind2)))
 
 if(length(inds)>0) stop("some design points are still bad cosmologies")
 
