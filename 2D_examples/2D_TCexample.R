@@ -12,10 +12,21 @@ tic <- proc.time()[3]
 # Do you want to...
 # use the FL subset TCs?
 # specify no warping a priori? (ie, should W have prior mean X?)
-# do any spatial prediction (kriging)?
+# do any spatial prediction (kriging)? Note: this is not needed for UQ.
 do_FL <- T
-pmx <- T
+pmx <- F
 krig <- F
+vecchia <- T
+
+cov <- "matern"
+v <- 1.5
+true_g = NULL #sqrt(.Machine$double.eps)
+
+# what to evaluate
+if(do_FL){
+  wte <- "error" # "NAM" "ST4"
+  if(!(wte %in% c("error","NAM","ST4"))) stop("wte should be %in% c('error','NAM','ST4')")
+}
 
 # Read in the previous burned-in values for params and w
 # loads init_param and init_w
@@ -24,17 +35,20 @@ krig <- F
 
 # Load the appropriate files (most FL storms, or all full storms)
 if(do_FL){
-  tc_files <- list.files("rda/FL_storms", full.names = T)
+  tc_files <- list.files(paste0("rda/FL_storms",if(wte=="NAM"){"/NAM"},if(wte=="ST4"){"/ST4"}), 
+                         full.names = T, pattern = ".rda")
 } else {
   tc_files <- list.files("~/NAM-Model-Validation/csv/error_df/subtractPWmeanF/",
                          full.names = T)
 }
 
-# storm to evaluate (11 is smallest)
-ste <- 11
+# storm to evaluate (11 is smallest if FL_df <- FALSE)
+ste <- 18
 
 # number of iterations for MCMC
-niters <- 40058
+niters <- 12000
+nburn <- 2000
+kth <- 5
 
 args <- commandArgs(TRUE)
 if(length(args) > 0)
@@ -44,7 +58,15 @@ if(length(args) > 0)
 # Read in the specific storm data frame
 if(do_FL){
   load(tc_files[ste])
-  tc <- data.frame(FL_df)
+  if(wte == "error") tc <- data.frame(FL_df)
+  if(wte == "NAM"){
+    NAM_df <- rasterToPoints(NAM_plotter)
+    tc <- data.frame(NAM_df)
+  }
+  if(wte == "ST4"){
+    ST4_df <- rasterToPoints(ST4_plotter)
+    tc <- data.frame(ST4_df)
+  }
   names(tc) <- c("x","y","value")
 } else {
   tc <- read.csv(tc_files[ste], row.names = 1)
@@ -83,29 +105,29 @@ xx <- cbind(tc_pred$xs, tc_pred$ys)
 
 # Fit two-layer DGP (exponential cov fn)
 if(pmx){
-  fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=1.5, vecchia = T, 
+  fit <- fit_two_layer(x, y, nmcmc = niters, cov = cov, v = v, vecchia = vecchia, 
                        # theta_y_0 = init_param[ste,1],
                        # theta_w_0 = 1000/(.0001/1000),
                        # w_0 = init_w[[ste]][[1]],
-                       # true_g = sqrt(.Machine$double.eps),
+                       true_g = true_g,
                        settings = list(w_prior_mean = x))#,
                                        # alpha = list(g = 1.5, theta_w = 1000, theta_y = 1.5),
                                        # beta = list(g = 3.9, theta_w = .0001/1000, theta_y = 3.9/6)))
 } else {
-  fit <- fit_two_layer(x, y, nmcmc = niters, cov = "matern", v=0.5, vecchia = T, 
-                       theta_y_0 = init_param[ste,1],
-                       theta_w_0 = init_param[ste,2:3],
-                       w_0 = init_w[[ste]][[1]],
-                       true_g = sqrt(.Machine$double.eps))
+  fit <- fit_two_layer(x, y, nmcmc = niters, cov = cov, v = v, vecchia = vecchia, 
+                       # theta_y_0 = init_param[ste,1],
+                       # theta_w_0 = init_param[ste,2:3],
+                       # w_0 = init_w[[ste]][[1]],
+                       true_g = true_g)
 }
 
-# fit <- trim(fit, 1000, 1) # retain 2500 samples
+fit <- deepgp::trim(fit, nburn, kth) # retain 2500 samples
 
 # save before predict
 if(do_FL){
-  save(fit, file = paste0("rda/FL_fits/storm",ste,"_niters",niters,".rda"))
+  save(fit, file = paste0("rda/FL_fits/storm",ste,"_niters",niters,if(pmx){"pmx"},"_",wte,".rda"))
 } else {
-  save(fit, file = paste0("rda/storm",ste,"_niters",niters,".rda"))
+  save(fit, file = paste0("rda/storm",ste,"_niters",niters,if(pmx){"pmx"},".rda"))
 }
 
 # predict and save after
@@ -114,8 +136,8 @@ if(krig){
   save(fit, file = paste0("rda/",if(do_FL){"FL_fits/"},
                           "storm",ste,
                           "_niters",niters,
-                          if(krig){"krig"},
-                          if(pmx){"pmx"},".rda"))
+                          "krig",if(pmx){"pmx"},
+                          "_",wte,".rda"))
 }
 
 if(krig){
@@ -133,9 +155,9 @@ if(krig){
 
 # compare predictions via plots
 pdf(paste0("pdf/",if(do_FL){"FL_fits/"},"storm",ste,
-           "_niters_",niters,if(krig){"krig"},if(pmx){"pmx"},".pdf"))
+           "_niters_",niters,if(krig){"krig"},if(pmx){"pmx"},"_",wte,".pdf"))
 if(krig){par(mfrow=c(1,2))}
-plot(rasterFromXYZ(cbind(tc$xs, tc$ys, tc$value)), if(krig){zlim=rg}, main="EF")
+plot(rasterFromXYZ(cbind(tc$xs, tc$ys, tc$value)), if(krig){zlim=rg}, main=paste(wte, niters, cov, v, true_g))
 if(krig){
   plot(rasterFromXYZ(cbind(pred$xx.1,pred$xx.2,pred$mean)), zlim=rg, main="pred mean")
   # plot(rasterFromXYZ(cbind(pred2$xx.1,pred2$xx.2,pred2$mean)), zlim=rg)
