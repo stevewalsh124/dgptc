@@ -29,8 +29,16 @@ true_diag <- F
 model_diag <- F
 var_adj <- 25
 
-# Model the correlated errors as Matern?
-matern_errors <- T
+# Model the correlated errors with a covariance function?
+cf_errors <- T
+if(cf_errors){
+  err_cov <- "exp2"#"matern"#
+  err_v   <- 999#2.5#
+  err_g   <- sqrt(.Machine$double.eps)#NULL#
+  err_g_msg <- ifelse(is.null(err_g),"estg","fixg")
+  err_mcmc <- 1000
+  err_burn <- 500
+}
 
 # Use the true covariance matrix for sigma hat?
 use_true_cov <- F
@@ -65,7 +73,7 @@ if(length(args) > 0)
 
 pdf(paste0("pdf/simstudydgpact_",nmcmc,"_",nrun,
            if(true_diag){"_TD"}, if(model_diag){paste0("_MD", var_adj)},
-           if(matern_errors){"_matern_errors"},
+           if(cf_errors){paste0("_cfe",err_v,err_g_msg)},
            if(use_true_cov){"_UTC"}, if(use_both_true_covs){"_UBTC"},
            if(taper_cov){paste0("_tpr",tau_b)}, if(pmx){"_pmx"}, if(vecchia){"_vec"},
            if(one_layer){"_1L"},"_",cov_fn,"_",seed,".pdf"))
@@ -172,8 +180,9 @@ if(use_true_cov) {
   if(model_diag){
     Sigma_hat <- var_adj*diag(1/precc)
   } else {
-    if(matern_errors){
-      Sigma_hat <- get_matern(x, Y_sim - colMeans(Y_sim), nmcmc=1500, nburn=500)
+    if(cf_errors){
+      Sigma_hat <- get_matern(x, Y_sim - colMeans(Y_sim), nmcmc = err_mcmc, nburn = err_burn, 
+                              cov = err_cov, v = err_v, true_g = err_g)
       } else { 
         Sigma_hat <- cov(Y_sim)
       }
@@ -243,7 +252,7 @@ dev.off()
 
 save.image(file = paste0("rda/1D_sim_",nmcmc,"_",nrun,
                          if(true_diag){"_TD"}, if(model_diag){paste0("_MD", var_adj)},
-                         if(matern_errors){"_matern_errors"},
+                         if(cf_errors){paste0("_cfe",err_v,err_g_msg)},
                          if(use_true_cov){"_UTC"}, if(use_both_true_covs){"_UBTC"},
                          if(taper_cov){paste0("_tpr",tau_b)}, if(pmx){"_pmx"}, if(vecchia){"_vec"},
                          if(one_layer){"_1L"},"_",cov_fn,"_",seed,".rda"))
