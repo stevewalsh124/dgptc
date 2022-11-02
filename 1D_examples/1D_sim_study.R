@@ -33,8 +33,8 @@ var_adj <- 25
 cf_errors <- T
 if(cf_errors){
   err_cov <- "exp2"#"matern"#
-  err_v   <- 999#2.5#
-  err_g   <- sqrt(.Machine$double.eps)#NULL#
+  err_v   <- ifelse(err_cov == "matern", 2.5, 999)
+  err_g   <- NULL#sqrt(.Machine$double.eps)#
   err_g_msg <- ifelse(is.null(err_g),"estg","fixg")
   err_mcmc <- 1000
   err_burn <- 500
@@ -54,7 +54,7 @@ tau_b <- 1
 # Don't do this; use est.true* instead
 krig <- F
 
-seed <- 1
+seed <- 102
 
 cov_fn <- "matern"#"exp2"#
 
@@ -181,11 +181,16 @@ if(use_true_cov) {
     Sigma_hat <- var_adj*diag(1/precc)
   } else {
     if(cf_errors){
-      Sigma_hat <- get_matern(x, Y_sim - colMeans(Y_sim), nmcmc = err_mcmc, nburn = err_burn, 
-                              cov = err_cov, v = err_v, true_g = err_g)
-      } else { 
-        Sigma_hat <- cov(Y_sim)
-      }
+      # logl_cov* files use the same names (eg: logl_SW, fit_two_layer_SW)
+      if(!one_layer) source("../dgp.hm/R/logl_cov_1L.R")
+      varvec <- 1/precc
+      Sigma_hat_ho <- get_matern(x, Y_sim - colMeans(Y_sim), nmcmc = err_mcmc, nburn = err_burn, 
+                              cov = err_cov, v = err_v, true_g = err_g, varvec = varvec)
+      Sigma_hat <- diag(sqrt(varvec)) %*% Sigma_hat_ho %*% diag(sqrt(varvec))
+      if(one_layer) {source("../dgp.hm/R/logl_cov_1L.R")} else {source("../dgp.hm/R/logl_cov.R")}
+    } else { 
+      Sigma_hat <- cov(Y_sim)
+    }
   }
 }
 
@@ -209,7 +214,7 @@ if(one_layer){
   plot(fitcov$theta_y, type = "l")
 } else {
   plot(fitcov)
-  fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=2, precs_pred = 1/diag(Cov_true_pred))
+  if(krig) fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=2, precs_pred = 1/diag(Cov_true_pred))
 }
 
 v <- fitcov$v
@@ -228,7 +233,7 @@ if(!one_layer){
   # This modifies the true warping in a Procrustes-type transformation
   # So that it is rescaled, and rotated and with endpoints at 0 and 1
   wl = 1; wh = length(fitcov$x); ref.scale = 1
-
+  
   # Second: undo scale
   # find the length of the deformed reference vector
   y.ref <- w[wl] - w[wh]
