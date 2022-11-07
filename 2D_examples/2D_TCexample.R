@@ -17,6 +17,8 @@ do_FL <- T
 pmx <- F
 krig <- F
 vecchia <- T
+subsetting <- F
+if(!subsetting & krig) stop("cant have no subsetting and kriging")
 
 cov <- "matern"
 v <- 1.5
@@ -24,7 +26,7 @@ true_g = NULL #sqrt(.Machine$double.eps)
 
 # what to evaluate
 if(do_FL){
-  wte <- "error" # "NAM" "ST4"
+  wte <- "ST4" # "NAM" "ST4"
   if(!(wte %in% c("error","NAM","ST4"))) stop("wte should be %in% c('error','NAM','ST4')")
 }
 
@@ -89,9 +91,16 @@ wl <- which(abs(tc$xs-zz[1]) < 1e-3 & abs(tc$ys-zz[2]) < 1e-3) # (0,0) point
 wh <- which(abs(tc$xs-zo[1]) < 1e-3 & abs(tc$ys-zo[2]) < 1e-3) # (0,1) point
 ww <- which(abs(tc$xs-sw[1]) < 1e-3 & abs(tc$ys-sw[2]) < 1e-3) # (0,1) point
 we <- which(abs(tc$xs-se[1]) < 1e-3 & abs(tc$ys-se[2]) < 1e-3) # (0,1) point
-all_but_ws <- (1:nrow(tc))[-c(wl,wh,ww,we)]
-train <- c(sample(all_but_ws, 496),wl,wh,ww,we)
-test <- (1:nrow(tc))[-train]
+
+if(subsetting){
+  all_but_ws <- (1:nrow(tc))[-c(wl,wh,ww,we)]
+  train <- c(sample(all_but_ws, 496),wl,wh,ww,we)
+  test <- (1:nrow(tc))[-train]
+} else {
+  all_but_ws <- 1:nrow(tc)
+  train <- 1:nrow(tc)
+  test <- (1:nrow(tc))[-train]
+}
 
 # subset training data
 tc_samp <- tc[train,]
