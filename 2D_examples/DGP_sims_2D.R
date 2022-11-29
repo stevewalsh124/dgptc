@@ -4,9 +4,9 @@
 # January 28 2022
 ##########################
 
-# Code based on that of M.A.R. Ferreira, 2016.
+# Code for one-layer sims based on that of M.A.R. Ferreira, 2016.
 
-pdf("pdf/deform_2D_sims_i4.pdf", width = 8, height=4)
+pdf("pdf/DGP_sims_2D.pdf", width = 8, height = 4)
 
 library(fields) # image.plot
 library(Morpho) # deformGrid2d
@@ -47,7 +47,7 @@ for (i in 1:nsims) {
   par(mfrow=c(1,3), mar=c(5,4,4,4)+0.1)
   # Currently the same for each layer; can change for individual layers
   phi_y <- 1/3
-  phi_w <- 0.01*4^3#0.01*i^3
+  phi_w <- 0.01*5^3#0.01*i^3
   sigma2 <- 1
   tau2 <- .Machine$double.eps^0.5
   
