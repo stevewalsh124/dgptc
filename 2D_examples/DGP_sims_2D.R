@@ -14,7 +14,7 @@ library(marmap) # griddify
 library(raster) # plot(.raster)
 
 # How many simulations do you want?
-nsims <- 20
+nsims <- 10
 # # of pixels per simulation? (11^2, 21^2, 31^2, etc.)
 npix <- 41^2
 
@@ -47,7 +47,7 @@ for (i in 1:nsims) {
   par(mfrow=c(1,3), mar=c(5,4,4,4)+0.1)
   # Currently the same for each layer; can change for individual layers
   phi_y <- 1/3
-  phi_w <- 0.01*5^3#0.01*i^3
+  phi_w <- 0.01*i^3
   sigma2 <- 1
   tau2 <- .Machine$double.eps^0.5
   
