@@ -27,6 +27,11 @@ for (i in 1:8) {
     xxx <- rbind(xxx, xx_temp)
 }
 
+# # If you want a 3^8 full factorial design (e.g.), 
+# # use this code to make xxx instead!
+# vals <- c(0, 0.5, 1)
+# xxx <- expand.grid(vals, vals, vals, vals, vals, vals, vals, vals, 0)
+
 omega_m <- xxx[,1]*(0.155-0.12)+0.12
 omega_b <- xxx[,2]*(0.0235-0.0215)+0.0215
 sigma_8 <- xxx[,3]*(0.9-0.7)+0.7
