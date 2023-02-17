@@ -9,10 +9,14 @@ set.seed(1)
 # Some quick values to try running emulator if necessary
 # sample_params <- c(0.13, 0.022, 0.8, 0.7, 0.95, -1, -1, 0.005)
 
-fix_0.5 <- F
+# Do you want conditional main effects (TRUE) or average main effects (FALSE)?
+fix_0.5 <- T
 
 G <- 11 # number of grid values to try: 0.0, 0.1, ..., 1
 MC <- 50 # number of MC for each grid value
+
+# Don't need Monte Carlo variation if conditional effects
+if(fix_0.5) MC <- 1
 
 n <- G*MC 
 
