@@ -30,7 +30,7 @@ model_diag <- F
 var_adj <- 25
 
 # Model the correlated errors with a covariance function?
-cf_errors <- T
+cf_errors <- F
 if(cf_errors){
   err_cov <- "exp2"#"matern"#
   err_v   <- ifelse(err_cov == "matern", 2.5, 999)
@@ -204,9 +204,15 @@ image.plot(Sigma_hat, main = "input as sigma_hat", zlim = range(c(Cov_true,Sigma
 # run for sim data #
 ####################
 
-fitcov <- fit_two_layer_SW(x = x, y = colMeans(Y_sim), nmcmc = nmcmc, 
-                           Sigma_hat = Sigma_hat/nrun, cov = cov_fn,
-                           pmx = pmx, vecchia = vecchia)
+if(one_layer){
+  fitcov <- fit_two_layer_SW(x = x, y = colMeans(Y_sim), nmcmc = nmcmc, 
+                             Sigma_hat = Sigma_hat/nrun, cov = cov_fn, vecchia = vecchia)
+} else {
+  fitcov <- fit_two_layer_SW(x = x, y = colMeans(Y_sim), nmcmc = nmcmc, 
+                             Sigma_hat = Sigma_hat/nrun, cov = cov_fn,
+                             pmx = pmx, vecchia = vecchia)
+}
+
 # plot(fitcov)
 fitcov <- trim_SW(fitcov, nburn, kth)
 if(one_layer){
