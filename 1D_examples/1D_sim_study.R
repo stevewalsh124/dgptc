@@ -1,5 +1,7 @@
 # sim study
 
+saveImage <- F
+
 one_layer <- F
 pmx <- F
 vecchia <- F
@@ -166,10 +168,10 @@ lmfit <- lm(log10(precs) ~ x) #precs for logl_g.R, 1/diag(covY) for logl_cov.R
 betahat <- coef(lmfit)
 precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
 if(true_diag){
-  Sigma_e_true_pred <- diag(5000/precs_pred^0.8)
+  Sigma_e_true_pred <- diag(sqrt(1/precs_pred)/sd_sz)
 } else {
   Sig_e_temp_p <- exp(-plgp:::distance(xx/.05)) + diag(sqrt(.Machine$double.eps),length(xx)) 
-  Ap <- diag(2500/precs_pred^0.8)
+  Ap <- diag(sqrt(1/precs_pred)/sd_sz)
   Sigma_e_true_pred <- Ap %*% Sig_e_temp_p %*% Ap
 }
 
@@ -187,7 +189,7 @@ if(use_true_cov) {
       Sigma_hat_ho <- get_matern(x, Y_sim - colMeans(Y_sim), nmcmc = err_mcmc, nburn = err_burn, 
                               cov = err_cov, v = err_v, true_g = err_g, varvec = varvec)
       Sigma_hat <- diag(sqrt(varvec)) %*% Sigma_hat_ho %*% diag(sqrt(varvec))
-      if(one_layer) {source("../dgp.hm/R/logl_cov_1L.R")} else {source("../dgp.hm/R/logl_cov.R")}
+      if(!one_layer) source("../dgp.hm/R/logl_cov.R")
     } else { 
       Sigma_hat <- cov(Y_sim)
     }
@@ -218,8 +220,10 @@ fitcov <- trim_SW(fitcov, nburn, kth)
 if(one_layer){
   plot(fitcov$g, type="l")
   plot(fitcov$theta_y, type = "l")
+  plot(fitcov$tau2, type="l", xlab="Iteration", ylab="tau2", main="Trace Plot of tau2")
 } else {
   plot(fitcov)
+  plot(fitcov$tau2, type="l", xlab="Iteration", ylab="tau2", main="Trace Plot of tau2")
   if(krig) fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=2, precs_pred = 1/diag(Sigma_e_true_pred))
 }
 
@@ -261,9 +265,11 @@ if(!one_layer){
 
 dev.off()
 
-save.image(file = paste0("rda/1D_sim_",nmcmc,"_",nrun,
-                         if(true_diag){"_TD"}, if(model_diag){paste0("_MD", var_adj)},
-                         if(cf_errors){paste0("_cfe",err_v,err_g_msg)},
-                         if(use_true_cov){"_UTC"}, if(use_both_true_covs){"_UBTC"},
-                         if(taper_cov){paste0("_tpr",tau_b)}, if(pmx){"_pmx"}, if(vecchia){"_vec"},
-                         if(one_layer){"_1L"},"_",cov_fn,"_",seed,".rda"))
+if(saveImage){
+  save.image(file = paste0("rda/1D_sim_",nmcmc,"_",nrun,
+                           if(true_diag){"_TD"}, if(model_diag){paste0("_MD", var_adj)},
+                           if(cf_errors){paste0("_cfe",err_v,err_g_msg)},
+                           if(use_true_cov){"_UTC"}, if(use_both_true_covs){"_UBTC"},
+                           if(taper_cov){paste0("_tpr",tau_b)}, if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                           if(one_layer){"_1L"},"_",cov_fn,"_",seed,".rda"))
+}
