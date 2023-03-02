@@ -56,7 +56,7 @@ tau_b <- 1
 # Don't do this; use est.true* instead
 krig <- F
 
-seed <- 102
+seed <- 103
 
 cov_fn <- "matern"#"exp2"#
 
@@ -108,9 +108,11 @@ set.seed(seed)
 # computes squared distances
 D <- plgp:::distance(x)
 
-# lengthscale = 1
+# lengthscale = theta_w_true
 # marginal variance = 1
-Sigma_W_true <- exp(-D) + diag(eps, length(x))
+theta_w_true <- 1
+g_true <- eps
+Sigma_W_true <- exp(-D/theta_w_true) + diag(g_true, length(x))
 
 # first layer
 set.seed(seed)
@@ -119,7 +121,9 @@ w <- c(rmvnorm(1, mean=x, sigma=Sigma_W_true))#warp_true#
 
 # second layer
 Dw <- plgp:::distance(c(w))
-Sigma_S_true <- exp(-Dw/0.05) + diag(eps, length(w))
+theta_y_true <- 0.05
+tau2_true <- 1
+Sigma_S_true <- tau2_true * exp(-Dw/theta_y_true) + diag(eps, length(w))
 ytrue_dgp <- rmvnorm(1, sigma=Sigma_S_true) #mean=W,
 ytrue_dgp <- (ytrue_dgp - mean(ytrue_dgp))/sd(ytrue_dgp)
 
@@ -218,12 +222,16 @@ if(one_layer){
 # plot(fitcov)
 fitcov <- trim_SW(fitcov, nburn, kth)
 if(one_layer){
+  par(mfrow=c(1,3))
   plot(fitcov$g, type="l")
   plot(fitcov$theta_y, type = "l")
   plot(fitcov$tau2, type="l", xlab="Iteration", ylab="tau2", main="Trace Plot of tau2")
 } else {
-  plot(fitcov)
-  plot(fitcov$tau2, type="l", xlab="Iteration", ylab="tau2", main="Trace Plot of tau2")
+  par(mfrow=c(2,2))
+  plot(fitcov$g, type="l", xlab="Iteration", ylab="g", main="Trace Plot of g"); abline(h=g_true, col="blue")
+  plot(fitcov$theta_y, type="l", xlab="Iteration", ylab="theta_y", main="Trace Plot of theta_y"); abline(h=theta_y_true, col="blue")
+  plot(fitcov$theta_w, type="l", xlab="Iteration", ylab="theta_w", main="Trace Plot of theta_w"); abline(h=theta_w_true, col="blue")
+  plot(fitcov$tau2, type="l", xlab="Iteration", ylab="tau2", main="Trace Plot of tau2"); abline(h=tau2_true, col="blue")
   if(krig) fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=2, precs_pred = 1/diag(Sigma_e_true_pred))
 }
 
