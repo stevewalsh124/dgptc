@@ -108,17 +108,17 @@ D <- plgp:::distance(x)
 
 # lengthscale = 1
 # marginal variance = 1
-Sigma <- exp(-D) + diag(eps, length(x))
+Sigma_W_true <- exp(-D) + diag(eps, length(x))
 
 # first layer
 set.seed(seed)
 # load("rda/warp_true.rda")
-w <- c(rmvnorm(1, mean=x, sigma=Sigma))#warp_true#
+w <- c(rmvnorm(1, mean=x, sigma=Sigma_W_true))#warp_true#
 
 # second layer
 Dw <- plgp:::distance(c(w))
-Sigma_s <- exp(-Dw/0.05) + diag(eps, length(w))
-ytrue_dgp <- rmvnorm(1, sigma=Sigma_s) #mean=W,
+Sigma_S_true <- exp(-Dw/0.05) + diag(eps, length(w))
+ytrue_dgp <- rmvnorm(1, sigma=Sigma_S_true) #mean=W,
 ytrue_dgp <- (ytrue_dgp - mean(ytrue_dgp))/sd(ytrue_dgp)
 
 #Plot each combination of layers/output
@@ -141,16 +141,16 @@ precc <- precs*sd_sz^2
 sdd <- sqrt(1/precc)
 
 if(true_diag){
-  Cov_true <- diag(1/precc)
+  Sigma_e_true <- diag(1/precc)
 } else {
-  Sig_mat <- exp(-plgp:::distance(x/.05)) + diag(sqrt(.Machine$double.eps),length(x)) 
+  Sig_e_temp <- exp(-plgp:::distance(x/.05)) + diag(sqrt(.Machine$double.eps),length(x)) 
   A <- diag(sdd)
-  Cov_true <- A %*% Sig_mat %*% A
+  Sigma_e_true <- A %*% Sig_e_temp %*% A
 }
 
 load("rda/yavg_for_sims.rda")
 ytrue <- c(ytrue_dgp) #+ y_avg_true
-Y_sim <- mvtnorm::rmvnorm(n = nrun, mean = ytrue, sigma = Cov_true, method = "eigen")
+Y_sim <- mvtnorm::rmvnorm(n = nrun, mean = ytrue, sigma = Sigma_e_true, method = "eigen")
 set.seed(as.numeric(Sys.time()))
 
 par(mfrow=c(1,1))
@@ -166,16 +166,16 @@ lmfit <- lm(log10(precs) ~ x) #precs for logl_g.R, 1/diag(covY) for logl_cov.R
 betahat <- coef(lmfit)
 precs_pred <- as.numeric(10^(cbind(1,xx) %*% betahat))
 if(true_diag){
-  Sig_mat_p <- exp(-plgp:::distance(xx/.05)) + diag(sqrt(.Machine$double.eps),length(xx)) 
-  Ap <- diag(2500/precs_pred^0.8)
-  Cov_true_pred <- Ap %*% Sig_mat_p %*% Ap
+  Sigma_e_true_pred <- diag(5000/precs_pred^0.8)
 } else {
-  Cov_true_pred <- diag(5000/precs_pred^0.8)
+  Sig_e_temp_p <- exp(-plgp:::distance(xx/.05)) + diag(sqrt(.Machine$double.eps),length(xx)) 
+  Ap <- diag(2500/precs_pred^0.8)
+  Sigma_e_true_pred <- Ap %*% Sig_e_temp_p %*% Ap
 }
 
 # get sigma hat
 if(use_true_cov) {
-  Sigma_hat <- Cov_true
+  Sigma_hat <- Sigma_e_true
 } else {
   if(model_diag){
     Sigma_hat <- var_adj*diag(1/precc)
@@ -197,8 +197,8 @@ if(use_true_cov) {
 if(taper_cov) Sigma_hat <- Sigma_hat * bohman(sqrt(plgp:::distance(x)), tau_b)
 
 par(mfrow=c(1,2))
-image.plot(Cov_true, main = "Cov_true", zlim = range(c(Cov_true,Sigma_hat)))
-image.plot(Sigma_hat, main = "input as sigma_hat", zlim = range(c(Cov_true,Sigma_hat)))
+image.plot(Sigma_e_true, main = "Sigma_e_true", zlim = range(c(Sigma_e_true,Sigma_hat)))
+image.plot(Sigma_hat, main = "input as sigma_hat", zlim = range(c(Sigma_e_true,Sigma_hat)))
 
 ####################
 # run for sim data #
@@ -220,7 +220,7 @@ if(one_layer){
   plot(fitcov$theta_y, type = "l")
 } else {
   plot(fitcov)
-  if(krig) fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=2, precs_pred = 1/diag(Cov_true_pred))
+  if(krig) fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=2, precs_pred = 1/diag(Sigma_e_true_pred))
 }
 
 v <- fitcov$v
@@ -228,7 +228,7 @@ v <- fitcov$v
 par(mfrow=c(1,1))
 if(krig) plot.krig(fitcov, Y = Y_sim)
 if(use_both_true_covs){
-  fitcov <- est.true.truecovs(fitcov, Y = Y_sim, Sigma_s = Sigma_s)
+  fitcov <- est.true.truecovs(fitcov, Y = Y_sim, Sigma_s = Sigma_S_true)
 } else {
   fitcov <- est.true(fitcov, Y = Y_sim)
 }
