@@ -111,8 +111,7 @@ D <- plgp:::distance(x)
 # lengthscale = theta_w_true
 # marginal variance = 1
 theta_w_true <- 1
-g_true <- eps
-Sigma_W_true <- exp(-D/theta_w_true) + diag(g_true, length(x))
+Sigma_W_true <- exp(-D/theta_w_true) + diag(eps, length(x))
 
 # first layer
 set.seed(seed)
@@ -123,7 +122,8 @@ w <- c(rmvnorm(1, mean=x, sigma=Sigma_W_true))#warp_true#
 Dw <- plgp:::distance(c(w))
 theta_y_true <- 0.05
 tau2_true <- 1
-Sigma_S_true <- tau2_true * exp(-Dw/theta_y_true) + diag(eps, length(w))
+g_true <- eps
+Sigma_S_true <- tau2_true * exp(-Dw/theta_y_true) + diag(g_true, length(w))
 ytrue_dgp <- rmvnorm(1, sigma=Sigma_S_true) #mean=W,
 ytrue_dgp <- (ytrue_dgp - mean(ytrue_dgp))/sd(ytrue_dgp)
 
@@ -149,7 +149,7 @@ sdd <- sqrt(1/precc)
 if(true_diag){
   Sigma_e_true <- diag(1/precc)
 } else {
-  Sig_e_temp <- exp(-plgp:::distance(x/.05)) + diag(sqrt(.Machine$double.eps),length(x)) 
+  Sig_e_temp <- exp(-plgp:::distance(x/.05)) + diag(eps, length(x)) 
   A <- diag(sdd)
   Sigma_e_true <- A %*% Sig_e_temp %*% A
 }
@@ -223,15 +223,22 @@ if(one_layer){
 fitcov <- trim_SW(fitcov, nburn, kth)
 if(one_layer){
   par(mfrow=c(1,3))
-  plot(fitcov$g, type="l")
-  plot(fitcov$theta_y, type = "l")
+  plot(fitcov$g, type="l", xlab="Iteration", ylab="g", main="Trace Plot of g")
+  abline(h=g_true, col="blue"); abline(h=g_true/nrun, col="blue", lty=2)
+  plot(fitcov$theta_y, type="l", xlab="Iteration", ylab="theta_y", main="Trace Plot of theta_y")
+  abline(h=theta_y_true, col="blue")
   plot(fitcov$tau2, type="l", xlab="Iteration", ylab="tau2", main="Trace Plot of tau2")
+  abline(h=tau2_true, col="blue")
 } else {
   par(mfrow=c(2,2))
-  plot(fitcov$g, type="l", xlab="Iteration", ylab="g", main="Trace Plot of g"); abline(h=g_true, col="blue")
-  plot(fitcov$theta_y, type="l", xlab="Iteration", ylab="theta_y", main="Trace Plot of theta_y"); abline(h=theta_y_true, col="blue")
-  plot(fitcov$theta_w, type="l", xlab="Iteration", ylab="theta_w", main="Trace Plot of theta_w"); abline(h=theta_w_true, col="blue")
-  plot(fitcov$tau2, type="l", xlab="Iteration", ylab="tau2", main="Trace Plot of tau2"); abline(h=tau2_true, col="blue")
+  plot(fitcov$g, type="l", xlab="Iteration", ylab="g", main="Trace Plot of g")
+  abline(h=g_true, col="blue"); abline(h=g_true/nrun, col="blue", lty=2)
+  plot(fitcov$theta_y, type="l", xlab="Iteration", ylab="theta_y", main="Trace Plot of theta_y")
+  abline(h=theta_y_true, col="blue")
+  plot(fitcov$theta_w, type="l", xlab="Iteration", ylab="theta_w", main="Trace Plot of theta_w")
+  abline(h=theta_w_true, col="blue")
+  plot(fitcov$tau2, type="l", xlab="Iteration", ylab="tau2", main="Trace Plot of tau2")
+  abline(h=tau2_true, col="blue")
   if(krig) fitcov <- predict.dgp2_SW(object = fitcov, xx, cores=2, precs_pred = 1/diag(Sigma_e_true_pred))
 }
 
