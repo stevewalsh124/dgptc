@@ -1,6 +1,7 @@
 # sim study
 
 saveImage <- F
+PDF <- TRUE
 
 one_layer <- F
 pmx <- F
@@ -73,7 +74,7 @@ if(length(args) > 0)
   for(i in 1:length(args))
     eval(parse(text=args[[i]]))
 
-pdf(paste0("pdf/simstudydgpact_",nmcmc,"_",nrun,
+if(PDF) pdf(paste0("pdf/simstudydgpact_",nmcmc,"_",nrun,
            if(true_diag){"_TD"}, if(model_diag){paste0("_MD", var_adj)},
            if(cf_errors){paste0("_cfe",err_v,err_g_msg)},
            if(use_true_cov){"_UTC"}, if(use_both_true_covs){"_UBTC"},
@@ -190,7 +191,9 @@ if(use_true_cov) {
       # logl_cov* files use the same names (eg: logl_SW, fit_two_layer_SW)
       if(!one_layer) source("../dgp.hm/R/logl_cov_1L.R")
       varvec <- 1/precc
-      Sigma_hat_ho <- get_matern(x, Y_sim - colMeans(Y_sim), nmcmc = err_mcmc, nburn = err_burn, 
+      Y_sim_zm <- matrix(NA, nrow(Y_sim), ncol(Y_sim))
+      for (ii in 1:nrow(Y_sim_zm)) Y_sim_zm[ii,] <- Y_sim[ii,] - colMeans(Y_sim)
+      Sigma_hat_ho <- get_matern(x, Y_sim_zm, nmcmc = err_mcmc, nburn = err_burn, 
                               cov = err_cov, v = err_v, true_g = err_g, varvec = varvec)
       Sigma_hat <- diag(sqrt(varvec)) %*% Sigma_hat_ho %*% diag(sqrt(varvec))
       if(!one_layer) source("../dgp.hm/R/logl_cov.R")
@@ -278,7 +281,7 @@ if(!one_layer){
   plot.warp(fitcov)
 }
 
-dev.off()
+if(PDF) dev.off()
 
 if(saveImage){
   save.image(file = paste0("rda/1D_sim_",nmcmc,"_",nrun,
