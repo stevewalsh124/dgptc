@@ -18,7 +18,7 @@ library(MASS) #ginv
 library(fields) #image.plot
 library(mvtnorm) #rmvnorm
 library(plgp) #distance (which is squared distances)
-library(zoo)
+library(zoo) #rollmean
 
 # # No need to taper here! The covariance matrices are already diagonal.
 # # Taper the covariance matrix before the MCMC fit?
