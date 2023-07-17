@@ -60,3 +60,7 @@ if(length(inds)>0) stop("some design points are still bad cosmologies")
 
 write.dat(xstar, path = "~/CosmicEmu/2022-Mira-Titan-IV/P_tot/")
 
+# To make the Mira-Titan IV settings with 111 rows, use:
+# des0 <- read.csv("csv/cosmic_settings.csv")
+# xstar <- cbind(des0[,-1],0)
+# write.dat(xstar, path="~/CosmicEmu/2022-Mira-Titan-IV/P_tot/")

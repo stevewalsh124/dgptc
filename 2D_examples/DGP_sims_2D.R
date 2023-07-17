@@ -4,9 +4,11 @@
 # January 28 2022
 ##########################
 
-# Code for one-layer sims based on that of M.A.R. Ferreira, 2016.
+PDF <- F
 
-pdf("pdf/DGP_sims_2D.pdf", width = 8, height = 4)
+# Code for one-layer sims based on that of M.A.R. Ferreira, 2016.
+set.seed(1)
+if(PDF) pdf("pdf/DGP_sims_2D.pdf", width = 8, height = 4)
 
 library(fields) # image.plot
 library(Morpho) # deformGrid2d
@@ -14,7 +16,7 @@ library(marmap) # griddify
 library(raster) # plot(.raster)
 
 # How many simulations do you want?
-nsims <- 10
+nsims <- 3
 # # of pixels per simulation? (11^2, 21^2, 31^2, etc.)
 npix <- 41^2
 
@@ -47,7 +49,7 @@ for (i in 1:nsims) {
   par(mfrow=c(1,3), mar=c(5,4,4,4)+0.1)
   # Currently the same for each layer; can change for individual layers
   phi_y <- 1/3
-  phi_w <- 0.01*i^3
+  phi_w <- 0.01*5^3
   sigma2 <- 1
   tau2 <- .Machine$double.eps^0.5
   
@@ -142,4 +144,7 @@ for (i in 1:nsims) {
   #                          ~ tau^2 == .(round(tau2,4))), cex.main=1.5)
 }
 
-dev.off()
+if(PDF) dev.off()
+
+dgp_2D <- list(s,ww,y,reg)
+save(dgp_2D, file = "rda/dgp_2D_plot.rda")
