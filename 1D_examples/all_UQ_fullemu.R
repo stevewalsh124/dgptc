@@ -55,21 +55,22 @@ if(zero_mean){
                 if(cf_errors){paste0("_cfe",err_v,err_g_msg)},if(taper_cov){paste0("tpr",tau_b)},
                 if(force_id_warp){"_fiw"},if(vecchia){"_vec"},"model",mte,"_",k_sm,".rda"))
     
+    xx <- log10(k)
     m <- fitcov$m
     
     # png(paste0("png/model",mte,"_emuspace_rmAvg.png"), width=4000, height = 2400, res=400)
     par(mar=c(4,4.5,1,1), mfrow=c(1,1))
-    plot(fitcov$x, fitcov$y - m, type="n", #xlim = log10(c(.04,.35)),
+    plot(xx, fitcov$y - m, type="n", #xlim = log10(c(.04,.35)),
          ylim = c(-.33,.33),
          xlab=expression(log[10](k)),
          ylab='script P', main = mte)#TeX(r'($log_{10}(k^{1.5}P(k)/2\pi^2)$)'))
-    for (i in 1:16) lines(fitcov$x, Y[i,] - m, col="gray", lwd=1)
-    lines(fitcov$x, colMeans(Y) - m, col=cb_cols[2], lwd=2)
-    lines(fitcov$x, y_hi - m, col=cb_cols[3], lwd=2)
-    # lines(fitcov$x, fitcov$Ms[,1], col="red", lwd=2)
-    lines(fitcov$x, fitcov$ubb - m, col=cb_cols[4], lwd=2, lty=3)
-    lines(fitcov$x, fitcov$lbb - m, col=cb_cols[4], lwd=2, lty=3)
-    lines(fitcov$x, cosmscrPsz - m, col=cb_cols[8], lwd=2, lty=2)
+    for (i in 1:16) lines(xx, Y[i,] - m, col="gray", lwd=1)
+    lines(xx, colMeans(Y) - m, col=cb_cols[2], lwd=2)
+    lines(xx, y_hi - m, col=cb_cols[3], lwd=2)
+    # lines(xx, fitcov$Ms[,1], col="red", lwd=2)
+    lines(xx, fitcov$ubb - m, col=cb_cols[4], lwd=2, lty=3)
+    lines(xx, fitcov$lbb - m, col=cb_cols[4], lwd=2, lty=3)
+    lines(xx, cosmscrPsz - m, col=cb_cols[8], lwd=2, lty=2)
     legend("topleft",legend = c("low res","low res avg","hi res", "UQ","cosmicEMU"), 
            col = c("gray",cb_cols[c(2,3,4,8)]), lty=c(1,1,1,3,2), lwd=2)
   }
@@ -79,19 +80,19 @@ if(zero_mean){
     load(paste0("/projects/precipit/1D_real_study/rda/emuspace_",nmcmc,"_",one_layer,if(pmx){"_pmx"},
                 if(cf_errors){paste0("_cfe",err_v,err_g_msg)},if(taper_cov){paste0("tpr",tau_b)},
                 if(force_id_warp){"_fiw"},if(vecchia){"_vec"},"model",mte,"_",k_sm,".rda"))
-    
     par(mar=c(4,4.5,1,1), mfrow=c(1,1))
-    plot(fitcov$x, fitcov$y, type="n", #xlim = log10(c(.04,.35)),
+    xx <- log10(k)
+    plot(xx, fitcov$y, type="n", #xlim = log10(c(.04,.35)),
          ylim = c(-3,2),#range(Y),
          xlab=expression(log[10](k)),
          ylab='script P', main = paste("Model batch",mte))#TeX(r'($log_{10}(k^{1.5}P(k)/2\pi^2)$)'))
-    for (i in 1:16) lines(fitcov$x, Y[i,], col="gray", lwd=1)
-    lines(fitcov$x, colMeans(Y), col=cb_cols[2], lwd=2)
-    lines(fitcov$x, y_hi, col=cb_cols[3], lwd=2)
-    # lines(fitcov$x, fitcov$Ms[,1], col="red", lwd=2)
-    lines(fitcov$x, fitcov$ubb, col=cb_cols[4], lwd=2, lty=3)
-    lines(fitcov$x, fitcov$lbb, col=cb_cols[4], lwd=2, lty=3)
-    lines(fitcov$x, cosmscrPsz, col=cb_cols[8], lwd=2, lty=2)
+    for (i in 1:16) lines(xx, Y[i,], col="gray", lwd=1)
+    lines(xx, colMeans(Y), col=cb_cols[2], lwd=2)
+    lines(xx, y_hi, col=cb_cols[3], lwd=2)
+    # lines(xx, fitcov$Ms[,1], col="red", lwd=2)
+    lines(xx, fitcov$ubb, col=cb_cols[4], lwd=2, lty=3)
+    lines(xx, fitcov$lbb, col=cb_cols[4], lwd=2, lty=3)
+    lines(xx, cosmscrPsz, col=cb_cols[8], lwd=2, lty=2)
     legend("bottomright",legend = c("low res","low res avg","hi res", "UQ","cosmicEMU"), 
            col = c("gray",cb_cols[c(2,3,4,8)]), lty=c(1,1,1,3,2), lwd=2)
     
