@@ -59,8 +59,8 @@ cov_fn <- "matern"#"exp2"#
 
 if(taper_cov) tau_b <- .2
 nrun <- 16
-nmcmc <- 5000
-nburn <- 2000
+nmcmc <- 10000
+nburn <- 5000
 kth <- 4
 
 bte <- 3 # cols 3-18 are low res

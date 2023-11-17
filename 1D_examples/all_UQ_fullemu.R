@@ -3,7 +3,7 @@
 # also compare 111 warpings
 
 zero_mean <- T
-do_warps <- F
+do_warps <- T
 mtes <- 111
 
 PDF <- T
