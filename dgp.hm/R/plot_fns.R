@@ -73,6 +73,83 @@ plot.warp <- function(fit, wl = 1, wh = length(fit$x), ref.scale = 1){
   }
 }
 
+plot.warp.k <- function(fit, k = kl, wl = 1, wh = length(fit$x), ref.scale = 1){
+  x <- fit$x
+  
+  for (j in 1:fit$nmcmc) {
+    y <- c(fit$w[[j]])
+    
+    # Second: undo scale
+    # find the length of the deformed reference vector
+    y.ref <- y[wl] - y[wh]
+    scale.y <- sqrt(t(y.ref)%*%y.ref)
+    # numerator comes from length of vector with points zz, zo
+    scale.back =  c(ref.scale/scale.y)#1/sqrt(sum(y.translate[,2]^2))
+    y.rot.scale = y * scale.back
+    
+    # Third: Translate back
+    translation <- y.rot.scale[wl] - x[wl]
+    y.rot.scale.tran <- y.rot.scale - translation
+    wstar <- y.rot.scale.tran
+    
+    # flip the graph if necessary in either direction
+    # remove the reflections
+    if(wstar[wl]>wstar[wh]) {wstar <- (wstar-wstar[wl])/(wstar[wh]-wstar[wl])}
+    fit$w[[j]] <- wstar
+  }
+  
+  ws <- do.call(rbind, fit$w)
+  w_avg <- colMeans(ws)
+  w_lb <- apply(ws, 2, function(x) quantile(x, 0.025))
+  w_ub <- apply(ws, 2, function(x) quantile(x, 0.975))
+  w_lbb <- apply(ws, 2, function(x) quantile(x, 0.005))
+  w_ubb <- apply(ws, 2, function(x) quantile(x, 0.995))
+  
+  # convert [0,1] to the approx [-3,1] log10(k) space
+  x_to_k <- function(x, k = k){ (x * (max(log10(k)) - min(log10(k)))) + min(log10(k)) }
+  
+  par(mfrow=c(1,1))
+  plot(log10(k), x_to_k(w_avg, k), 
+       type="l", col="blue", main = "warpings, with mean and 95% CI")  
+  # for(j in 1:fit$nmcmc) lines(x, fit$w[[j]])
+  # lines(x, w_avg, col="blue")
+  lines(log10(k), x_to_k(w_lb, k), col="blue", lty=2)
+  lines(log10(k), x_to_k(w_ub, k), col="blue", lty=2)
+  abline(0, 1, col="red")
+  
+  if(exists("warp_true")){
+    lines(x, warp_true, col="green")
+    warp_cover <- round(mean(warp_true > w_lb & warp_true < w_ub),3)
+    warp_cover99 <- round(mean(warp_true > w_lbb & warp_true < w_ubb),3)
+    if(exists("taper_cov")){
+      if(!dir.exists("csv/warp_cover/tap")) dir.create("csv/warp_cover/tap", recursive = T)
+      if(!dir.exists("csv/warp_cover/notap")) dir.create("csv/warp_cover/notap", recursive = T)
+      if(taper_cov){
+        if(exists("seed") & exists("ytrue")) write.csv(c(warp_cover, warp_cover99), 
+                                                       file = paste0("csv/warp_cover/tap/wcov_",nmcmc,"_",nrun,
+                                                                     if(true_diag){"_TD"}, 
+                                                                     if(model_diag){paste0("_MD", var_adj)},
+                                                                     if(cf_errors){paste0("_cfe",err_v,err_g_msg)},
+                                                                     if(use_true_cov){"_UTC"}, if(use_both_true_covs){"_UBTC"},
+                                                                     if(taper_cov){paste0("_tpr",tau_b)}, 
+                                                                     if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                     if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
+      } else {
+        if(exists("seed") & exists("ytrue")) write.csv(c(warp_cover, warp_cover99), 
+                                                       file = paste0("csv/warp_cover/notap/wcov_",
+                                                                     nmcmc,"_",nrun,
+                                                                     if(true_diag){"_TD"}, 
+                                                                     if(model_diag){paste0("_MD", var_adj)},
+                                                                     if(cf_errors){paste0("_cfe",err_v,err_g_msg)},
+                                                                     if(use_true_cov){"_UTC"}, if(use_both_true_covs){"_UBTC"},
+                                                                     if(taper_cov){paste0("_tpr",tau_b)}, 
+                                                                     if(pmx){"_pmx"}, if(vecchia){"_vec"},
+                                                                     if(one_layer){"_1L"},"_",cov_fn,"_",seed,".csv"))
+      }
+    }
+  }
+}
+
 
 plot.krig <- function(fit, zz=fit$mean, Y=parent.frame()$Y, precs_pred=parent.frame()$precs_pred){
   

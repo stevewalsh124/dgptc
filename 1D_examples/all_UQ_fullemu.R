@@ -1,13 +1,12 @@
-# coompare UQ results for each of 111 model batches
+# compare UQ results for each of 111 model batches
 # with/without mean subtracted out
 # also compare 111 warpings
+
+source("../dgp.hm/R/plot_fns.R")
 
 zero_mean <- T
 do_warps <- T
 mtes <- 111
-
-PDF <- T
-if(PDF) pdf(paste0("pdf/all_UQ_fullemu",if(zero_mean){"_zm"},".pdf"))
 
 vecchia <- F
 pmx <- F
@@ -44,9 +43,12 @@ cov_fn <- "matern"#"exp2"#
 
 if(taper_cov) tau_b <- .2
 nrun <- 16
-nmcmc <- 5000
-nburn <- 2000
+nmcmc <- 20000
+nburn <- 10000
 kth <- 4
+
+PDF <- T
+if(PDF) pdf(paste0("pdf/all_UQ_fullemu",if(zero_mean){"_zm_"},nmcmc,"_",nburn,".pdf"))
 
 if(zero_mean){
   for (mte in 1:mtes){
@@ -102,13 +104,13 @@ if(zero_mean){
 if(PDF) dev.off()
 
 if(do_warps & PDF){
-  pdf("pdf/all_Ws_fullemu.pdf")
+  pdf(paste0("pdf/all_Ws_fullemu_",nmcmc,"_",nburn,".pdf"))
   for (mte in 1:mtes) {
     print(mte)
     load(paste0("/projects/precipit/1D_real_study/rda/emuspace_",nmcmc,"_",one_layer,if(pmx){"_pmx"},
                 if(cf_errors){paste0("_cfe",err_v,err_g_msg)},if(taper_cov){paste0("tpr",tau_b)},
                 if(force_id_warp){"_fiw"},if(vecchia){"_vec"},"model",mte,"_",k_sm,".rda"))
-    plot.warp(fitcov)
+    plot.warp.k(fitcov)
     mtext(mte) 
   }
   dev.off()

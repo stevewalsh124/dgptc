@@ -9,6 +9,7 @@ vecchia <- F
 pmx <- F
 one_layer <- F
 force_id_warp <- F
+load("w0_from_mte1_50k.rda")
 
 # Smooth the precision info so it's not a step function for each data type (pt, lo, hi)?
 smooth_precs <- T
@@ -59,13 +60,13 @@ cov_fn <- "matern"#"exp2"#
 
 if(taper_cov) tau_b <- .2
 nrun <- 16
-nmcmc <- 10000
-nburn <- 5000
+nmcmc <- 15000
+nburn <- 10000
 kth <- 4
 
 bte <- 3 # cols 3-18 are low res
 
-# Model 1, choose from 000-111
+# Model 1, choose from 1-111 for training set, or c(0, 112:116) for test set
 mte <- 1
 
 args <- commandArgs(TRUE)
@@ -82,8 +83,22 @@ if(PDF) pdf(paste0("pdf/realstudydgpact_",nmcmc,"_",nrun,"_",
 step <- 499
 
 # first col is k, 2nd is linear pert theory, 3:18 is lowres, 19 is hires
-pk2 <- read.table(paste0("Mira-Titan-IV-data/Mira-Titan-2021/STEP",step,"/pk_M",
-                         if(mte<100){"0"},if(mte<10){"0"},mte,"_test.dat"))
+if(mte %in% 0:111){
+  pk2 <- read.table(paste0("Mira-Titan-IV-data/Mira-Titan-2021/STEP",step,"/pk_M",
+                           if(mte<100){"0"},if(mte<10){"0"},mte,"_test.dat"))
+} else {
+  if(mte==112) pk2 <- read.table(paste0("Mira-Titan-IV-data/Mira-Titan-2021/STEP",
+                                        step,"/pk_E001_test.dat"))
+  if(mte==113) pk2 <- read.table(paste0("Mira-Titan-IV-data/Mira-Titan-2021/STEP",
+                                        step,"/pk_E002_test.dat"))
+  if(mte==114) pk2 <- read.table(paste0("Mira-Titan-IV-data/Mira-Titan-2021/STEP",
+                                        step,"/pk_E003_test.dat"))
+  if(mte==115) pk2 <- read.table(paste0("Mira-Titan-IV-data/Mira-Titan-2021/STEP",
+                                        step,"/pk_E009_test.dat"))
+  if(mte==116) pk2 <- read.table(paste0("Mira-Titan-IV-data/Mira-Titan-2021/STEP",
+                                        step,"/pk_E010_test.dat"))
+}
+
 
 n <- nrow(pk2)
 k_sub <- 1:nrow(pk2) #index_list$lowres.ix
@@ -120,6 +135,7 @@ kl <- k[k_sub]
 x <- log10(kl)
 y <- log10(pk2[k_sub, bte]*kl^1.5/(2*pi^2)) - temp_lm
 y_pt <- log10(pk2[k_sub, 2]*kl^1.5/(2*pi^2)) - temp_lm
+y_pt <- ifelse(is.infinite(y_pt), 0, y_pt)
 y_lra <- y_lo_avg#log10(y_lo_avg*k^1.5/(2*pi^2))[k_sub] - temp_lm
 y_hi <- log10(pk2[k_sub, 19]*(k^1.5)[k_sub]/(2*pi^2)) - temp_lm
 y_hi <- ifelse(is.infinite(y_hi), 0, y_hi)
@@ -279,7 +295,8 @@ if(force_id_warp){
   fitcov <- fit_two_layer_SW(x = x, y = c(y_avg), nmcmc = nmcmc, Sigma_hat = Sigma_hat/nrunn, cov = cov_fn, pmx = pmx, 
                              vecchia = vecchia, settings = list(alpha =list(theta_w=1000), beta=list(theta_w=.0001/1000)))
 } else {
-  fitcov <- fit_two_layer_SW(x = x, y = c(y_avg), nmcmc = nmcmc, Sigma_hat = Sigma_hat/nrunn, cov = cov_fn, pmx = pmx, 
+  fitcov <- fit_two_layer_SW(x = x, y = c(y_avg), nmcmc = nmcmc, w_0 = w0_from_mte1_50k, 
+                             Sigma_hat = Sigma_hat/nrunn, cov = cov_fn, pmx = pmx, 
                              vecchia = vecchia)
 }
 
@@ -301,8 +318,25 @@ v <- fitcov$v
 par(mfrow=c(1,1))
 fitcov <- est.true(fitcov)
 plot.true(fitcov)
-cosmicEmu <- read.csv(paste0("~/CosmicEmu/2022-Mira-Titan-IV/P_tot/orig_111/EMU",
-                             mte-1,".txt"),sep="", header = F)
+if(mte %in% 1:111){
+  cosmicEmu <- read.csv(paste0("~/CosmicEmu/2022-Mira-Titan-IV/P_tot/orig_111/EMU",
+                               mte-1,".txt"),sep="", header = F)
+} else {
+  if(mte==0) cosmicEmu <- read.csv("~/CosmicEmu/2022-Mira-Titan-IV/P_tot/test_6/EMU5.txt",
+                                   sep="", header = F)
+  if(mte==112) cosmicEmu <- read.csv("~/CosmicEmu/2022-Mira-Titan-IV/P_tot/test_6/EMU0.txt",
+                                     sep="", header = F)
+  if(mte==113) cosmicEmu <- read.csv("~/CosmicEmu/2022-Mira-Titan-IV/P_tot/test_6/EMU1.txt",
+                                     sep="", header = F)
+  if(mte==114) cosmicEmu <- read.csv("~/CosmicEmu/2022-Mira-Titan-IV/P_tot/test_6/EMU2.txt",
+                                     sep="", header = F)
+  if(mte==115) cosmicEmu <- read.csv("~/CosmicEmu/2022-Mira-Titan-IV/P_tot/test_6/EMU3.txt",
+                                     sep="", header = F)
+  if(mte==116) cosmicEmu <- read.csv("~/CosmicEmu/2022-Mira-Titan-IV/P_tot/test_6/EMU4.txt",
+                                     sep="", header = F)
+
+}
+
 cosmscrP <- log10(cosmicEmu[,2]*k^1.5/(2*pi^2))
 cosmscrPsz <- (cosmscrP - mean_sz)/sd_sz
 lines(fitcov$x, cosmscrPsz, col="green", lwd=1)
@@ -333,17 +367,17 @@ m <- fitcov$m
 
 # png(paste0("png/model",mte,"_emuspace_rmAvg.png"), width=4000, height = 2400, res=400)
 par(mar=c(4,4.5,1,1), mfrow=c(1,1))
-plot(fitcov$x, fitcov$y - m, type="n", #xlim = log10(c(.04,.35)),
+plot(log10(kl), fitcov$y - m, type="n", #xlim = log10(c(.04,.35)),
      ylim = c(-.33,.33),
      xlab=expression(log[10](k)),
      ylab='script P')#TeX(r'($log_{10}(k^{1.5}P(k)/2\pi^2)$)'))
-for (i in 1:16) lines(fitcov$x, Y[i,] - m, col="gray", lwd=1)
-lines(fitcov$x, colMeans(Y) - m, col=cb_cols[2], lwd=2)
-lines(fitcov$x, y_hi - m, col=cb_cols[3], lwd=2)
-# lines(fitcov$x, fitcov$Ms[,1], col="red", lwd=2)
-lines(fitcov$x, fitcov$ubb - m, col=cb_cols[4], lwd=2, lty=3)
-lines(fitcov$x, fitcov$lbb - m, col=cb_cols[4], lwd=2, lty=3)
-lines(fitcov$x, cosmscrPsz - m, col=cb_cols[8], lwd=2, lty=2)
+for (i in 1:16) lines(log10(kl), Y[i,] - m, col="gray", lwd=1)
+lines(log10(kl), colMeans(Y) - m, col=cb_cols[2], lwd=2)
+lines(log10(kl), y_hi - m, col=cb_cols[3], lwd=2)
+# lines(log10(kl), fitcov$Ms[,1], col="red", lwd=2)
+lines(log10(kl), fitcov$ubb - m, col=cb_cols[4], lwd=2, lty=3)
+lines(log10(kl), fitcov$lbb - m, col=cb_cols[4], lwd=2, lty=3)
+lines(log10(kl), cosmscrPsz - m, col=cb_cols[8], lwd=2, lty=2)
 legend("topleft",legend = c("low res","low res avg","hi res", "UQ","cosmicEMU"), 
        col = c("gray",cb_cols[c(2,3,4,8)]), lty=c(1,1,1,3,2), lwd=2)
 # dev.off()

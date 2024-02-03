@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -N1 --ntasks-per-node=2
+#SBATCH -N1 --ntasks-per-node=4
 #SBATCH -t 24:00:00
 #SBATCH -p normal_q
 #SBATCH -A Precipit
